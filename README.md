@@ -2,13 +2,29 @@
 
 Always-on agentic operations built on [Rotary](https://github.com/tschk/rotary). Roundhouse watches configured HTTP health endpoints, investigates failures with your model, and requests named recovery actions. Only independent health checks can resolve an incident.
 
-Run it on a Linux server with persistent storage and a supervisor. No laptop, interactive agent session, or desktop connection is required. This is an API-first initial implementation, not a dashboard or a managed hosting service.
+Run it as a Cloudflare Worker with SQLite Durable Objects, or on a Linux server with persistent storage and a supervisor. No laptop, interactive agent session, Docker daemon, or desktop connection is required. This is API-first software, not a dashboard or a managed hosting service.
+
+## Choose a runtime
+
+- [Workers and npm](npm/README.md): `@tschk/roundhouse` contains a JavaScript client and a real Rust/Wasm Workers host. Durable Object alarms run checks without a connected client. Telemetry captures named events, logs, spans, and gauge samples, with bounded queries and aggregates.
+- [Portable Rust crate](crates/roundhouse-core/README.md): `roundhouse-core` exposes configuration, provider-conversation, telemetry-validation, and permission contracts for another host. It is a library, not a scheduler by itself.
+- [Native server](deploy/README.md): the root `roundhouse` Cargo package embeds Rotary's full agent loop with a persistent SQLite database. The existing API and safety policy remain supported.
+
+These are source packages, not published npm or crates.io releases. Build and pack locally using the linked instructions. The native and Workers hosts have deliberately different provider configuration formats and telemetry support.
+
+Workers runs Rotary's genuine `rx4::lite::Agent`, built with `default-features = false, features = ["lite"]`. Rotary owns the resumable provider conversation and shared permission/redaction code; Roundhouse supplies monitoring policy, network I/O, persistence, and exact recovery authority. Native capabilities remain in `rx4::Agent`; they are not available inside Workers. See [source provenance](crates/roundhouse-core/UPSTREAM.md). The direct Wasm bridge follows the inspected [eqts](https://github.com/tschk/eqts) example; eqts supplies neither hosting nor a native runtime inside Workers.
+
+## Keep existing telemetry
+
+[Connect PostHog and Better Stack](docs/integrations.md) without changing existing instrumentation or migrating historical data. Workers supports cached PostHog saved-insight reads, Better Stack monitor reads, and fixed recent/historical log queries. Dedicated authenticated receivers accept explicitly configured provider notification templates.
+
+Reads, incoming notifications, and forwarding are distinct. There is no automatic forwarding, history sync, or drop-in capture/OTLP compatibility. Provider adapters have contract fixtures; customer account credentials and real provider delivery still require verification. [Observability coverage and open-source references](docs/observability.md) maps implemented behavior against PostHog, Better Stack, SigNoz, OpenObserve, Grafana, Prometheus, Uptime Kuma, and OpenTelemetry. **This release does not have 1:1 PostHog or Better Stack feature parity.**
 
 ## What works
 
 - Interval-based health checks and authenticated, idempotent event intake.
 - SQLite incident history, investigation summaries, evidence, request reservations, approvals, and action outcomes across restarts.
-- Rotary's actual agent loop, provider clients, scope filtering, tool registry, and permission gates. The dependency is pinned to an inspected commit.
+- Native: Rotary's actual agent loop, provider clients, scope filtering, tool registry, and permission gates. Workers: Rotary's lite agent, shared permissions, and redaction.
 - Two model tools: `inspect_system` and `request_recovery`. No shell, filesystem, arbitrary HTTP, MCP, or subagent tools.
 - Separate event and operator credentials. Event credentials cannot read incident history or authorize recovery.
 - Production recovery requires a single-use approval for the exact incident and named action. Configuration rejects production auto-approval.
@@ -85,7 +101,7 @@ See [the server deployment guide](deploy/README.md) for a systemd service and a 
 
 No production target or credentials are configured in this repository. Deployment and production action authority remain operator decisions.
 
-## Boundaries of this release
+## Boundaries of the native host
 
 - No vendor-specific AWS, Kubernetes, Cloudflare, database, paging, or chat integrations. A service-specific adapter can expose a narrow authenticated recovery endpoint, but it must be configured and tested separately.
 - No general arbitrary action executor, automatic rollback, dependency graph, consecutive-failure threshold, distributed scheduler, or high availability.
@@ -96,4 +112,4 @@ No production target or credentials are configured in this repository. Deploymen
 
 ## License
 
-MPL-2.0, matching Rotary. Rotary remains an unmodified pinned dependency; no engine source is copied into Roundhouse.
+MPL-2.0, matching Rotary. Both hosts depend on pinned Rotary source; Roundhouse no longer maintains copied security modules or its own provider-conversation driver. See [provenance](crates/roundhouse-core/UPSTREAM.md) and [third-party notices](THIRD_PARTY_NOTICES.md). No observability-platform implementation was copied.

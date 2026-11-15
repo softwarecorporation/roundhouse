@@ -6,3 +6,15 @@
 *.sqlite*
 /roundhouse.local.json
 __pycache__/
+**/target/
+**/node_modules/
+/npm/dist/
+/npm/wasm/
+/npm/*.tgz
+/npm/LICENSE
+/npm/UPSTREAM.md
+/npm/licenses/
+/npm/rust/
+/npm/THIRD_PARTY_NOTICES.md
+/.wrangler/
+/.roundhouse-test-secrets.json

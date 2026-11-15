@@ -1244,8 +1244,8 @@ checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
 name = "rx4"
-version = "0.7.5"
-source = "git+https://github.com/tschk/rotary?rev=038592ca3ab5d30a1e230306257c6b885c4d0d17#038592ca3ab5d30a1e230306257c6b885c4d0d17"
+version = "0.8.0"
+source = "git+https://github.com/tschk/rotary?rev=a7ec9f58f67c8d1a8a1551a5015d2c6026113a61#a7ec9f58f67c8d1a8a1551a5015d2c6026113a61"
 dependencies = [
  "async-trait",
  "cancellation-token",

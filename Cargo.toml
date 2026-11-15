@@ -7,7 +7,7 @@ license = "MPL-2.0"
 description = "Always-on, permission-gated agentic operations built on Rotary"
 
 [dependencies]
-rx4 = { git = "https://github.com/tschk/rotary", rev = "038592ca3ab5d30a1e230306257c6b885c4d0d17", default-features = false, features = ["providers"] }
+rx4 = { git = "https://github.com/tschk/rotary", rev = "a7ec9f58f67c8d1a8a1551a5015d2c6026113a61", default-features = false, features = ["providers"] }
 async-trait = "0.1"
 axum = "0.8"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

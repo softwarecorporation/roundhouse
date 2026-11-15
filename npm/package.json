@@ -1,0 +1,45 @@
+{
+  "name": "@tschk/roundhouse",
+  "version": "0.2.0",
+  "description": "Roundhouse API client and Rust/Wasm Cloudflare Workers runtime",
+  "license": "MPL-2.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tschk/roundhouse.git",
+    "directory": "npm"
+  },
+  "files": ["dist", "wasm", "rust", "licenses", "README.md", "LICENSE", "UPSTREAM.md", "THIRD_PARTY_NOTICES.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    },
+    "./workers": {
+      "types": "./dist/workers.d.ts",
+      "import": "./dist/workers.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    }
+  },
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test test",
+    "prepack": "bun run build"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261115.1",
+    "@types/bun": "1.4.4",
+    "@types/node": "26.6.6",
+    "esbuild": "0.28.2",
+    "miniflare": "4.20260730.0",
+    "typescript": "7.0.2"
+  }
+}

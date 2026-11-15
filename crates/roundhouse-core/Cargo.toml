@@ -1,0 +1,23 @@
+[package]
+name = "roundhouse-core"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.100"
+license = "MPL-2.0"
+description = "Roundhouse policy and Wasm bridge for the Rotary lite agent"
+repository = "https://github.com/tschk/roundhouse"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rx4 = { git = "https://github.com/tschk/rotary", rev = "a7ec9f58f67c8d1a8a1551a5015d2c6026113a61", default-features = false, features = ["lite"] }
+url = "2"
+wasm-bindgen = "=0.2.130"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt", "time"] }
+
+[workspace]

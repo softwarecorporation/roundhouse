@@ -19,3 +19,24 @@ jobs:
       - run: cargo build --locked
       - run: python3 tests/e2e.py
       - run: docker build -t roundhouse:test .
+  portable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.100
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - run: cargo install wasm-bindgen-cli --version 0.2.130 --locked
+      - run: cargo fmt --manifest-path crates/roundhouse-core/Cargo.toml --check
+      - run: cargo clippy --locked --manifest-path crates/roundhouse-core/Cargo.toml --all-targets -- -D warnings
+      - run: cargo test --locked --manifest-path crates/roundhouse-core/Cargo.toml
+      - run: bun install --cwd npm --frozen-lockfile
+      - run: bun run --cwd npm build
+      - run: bun run --cwd npm typecheck
+      - run: bun run --cwd npm test
+      - run: bun pm --cwd npm pack
+      - run: python3 tools/audit_release.py

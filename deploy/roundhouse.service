@@ -1,0 +1,25 @@
+[Unit]
+Description=Roundhouse agentic operations service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=roundhouse
+Group=roundhouse
+ExecStart=/usr/local/bin/roundhouse /etc/roundhouse/config.json
+EnvironmentFile=/etc/roundhouse/secrets.env
+StateDirectory=roundhouse
+WorkingDirectory=/var/lib/roundhouse
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

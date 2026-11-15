@@ -1,0 +1,48 @@
+{
+  "listen": "127.0.0.1:8080",
+  "database": "/var/lib/roundhouse/roundhouse.sqlite",
+  "api_token_env": "ROUNDHOUSE_OPERATOR_TOKEN",
+  "event_token_env": "ROUNDHOUSE_EVENT_TOKEN",
+  "provider": {
+    "kind": "openai_compatible",
+    "base_url": "https://api.openai.com/v1",
+    "model": "gpt-4o-mini",
+    "api_key_env": "ROUNDHOUSE_PROVIDER_KEY"
+  },
+  "limits": {
+    "daily_budget_microusd": 5000000,
+    "reserve_per_request_microusd": 100000,
+    "daily_requests": 50,
+    "requests_per_incident": 8,
+    "daily_actions": 5,
+    "investigation_timeout_seconds": 120
+  },
+  "monitors": [
+    {
+      "id": "application",
+      "health_url": "https://app.example.com/health",
+      "expected_status": 200,
+      "interval_seconds": 60,
+      "timeout_seconds": 10,
+      "verification_attempts": 3,
+      "verification_interval_seconds": 5,
+      "environment": "production",
+      "diagnostics": [
+        {
+          "name": "worker-status",
+          "url": "https://ops.example.com/worker/status",
+          "token_env": "ROUNDHOUSE_DIAGNOSTIC_TOKEN"
+        }
+      ],
+      "actions": [
+        {
+          "name": "restart_worker",
+          "description": "Restart the application's background worker. Does not alter stored data.",
+          "url": "https://ops.example.com/worker/restart",
+          "token_env": "ROUNDHOUSE_RECOVERY_TOKEN",
+          "auto_approve": false
+        }
+      ]
+    }
+  ]
+}

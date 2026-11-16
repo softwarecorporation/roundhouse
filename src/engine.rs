@@ -33,6 +33,11 @@ impl Runtime {
             .map_err(|_| "another instance owns this database")?;
         let store = Store::open(&config.database).map_err(|_| "cannot open database")?;
         store
+            .bind_configuration(
+                &serde_json::to_string(&config).map_err(|_| "invalid configuration")?,
+            )
+            .map_err(|_| "cannot bind persisted authority to configuration")?;
+        store
             .recover_interrupted()
             .map_err(|_| "cannot recover database")?;
         let client = reqwest::Client::builder()

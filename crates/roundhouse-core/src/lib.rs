@@ -146,6 +146,7 @@ impl Config {
                     return Err("invalid diagnostic".into());
                 }
             }
+            Session::new(Value::Null).request(&c.provider, &m.actions)?;
         }
         Ok(c)
     }

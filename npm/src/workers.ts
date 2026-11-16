@@ -100,13 +100,19 @@ export class Roundhouse extends DurableObject<Env> {
     return this.ctx.storage.sql.exec(query, ...bindings).toArray() as T[];
   }
   private clean(text: string): string {
+    if (this.env.BETTERSTACK_LOGS_USER && this.env.BETTERSTACK_LOGS_PASSWORD) {
+      text = text.split(btoa(`${this.env.BETTERSTACK_LOGS_USER}:${this.env.BETTERSTACK_LOGS_PASSWORD}`)).join("[REDACTED]");
+    }
     for (const s of [this.env.PROVIDER_API_KEY, this.env.OPERATOR_TOKEN, this.env.EVENT_TOKEN, this.env.APPLICATION_TOKEN, this.env.POSTHOG_READ_KEY, this.env.BETTERSTACK_UPTIME_TOKEN, this.env.BETTERSTACK_LOGS_USER, this.env.BETTERSTACK_LOGS_PASSWORD, this.env.POSTHOG_RECEIVER_TOKEN, this.env.BETTERSTACK_RECEIVER_TOKEN].filter((s): s is string => !!s).sort((a, b) => b.length - a.length)) text = text.split(s).join("[REDACTED]");
     return core.redact(text);
   }
   private scrub(value: unknown): unknown {
     if (typeof value === "string") return this.clean(value);
     if (Array.isArray(value)) return value.map(v => this.scrub(v));
-    if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, this.scrub(v)]));
+    if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => {
+      if (this.clean(k) !== k) throw new HttpError(400);
+      return [k, this.scrub(v)];
+    }));
     return value;
   }
   private audit(id: string, kind: string, detail: unknown): void {
@@ -154,7 +160,7 @@ export class Roundhouse extends DurableObject<Env> {
         return Response.json(result);
       }
       if (path === "/v1/telemetry" && request.method === "POST") return Response.json(this.telemetry.capture(await bounded(request.body, 262144), v => this.scrub(v)));
-      if (path === "/v1/telemetry" && request.method === "GET") return Response.json(this.telemetry.query(url.searchParams));
+      if (path === "/v1/telemetry" && request.method === "GET") return Response.json(this.scrub(this.telemetry.query(url.searchParams)));
       if (path === "/v1/analytics" && request.method === "GET") return Response.json(this.telemetry.analytics(url.searchParams));
       if (path === "/v1/probes" && request.method === "GET") {
         const service = url.searchParams.get("service");
@@ -225,7 +231,7 @@ export class Roundhouse extends DurableObject<Env> {
         diagnostics.push({ name: d.name, status: r.status, body: this.clean(await bounded(r.body, 4096, true)) });
       } catch { diagnostics.push({ name: d.name, error: "diagnostic unavailable" }); }
     }
-    const evidence = { health, diagnostics, telemetry: this.telemetry.evidence(m.id) };
+    const evidence = this.scrub({ health, diagnostics, telemetry: this.telemetry.evidence(m.id) });
     this.audit(i.id, "inspection", evidence);
     return evidence;
   }

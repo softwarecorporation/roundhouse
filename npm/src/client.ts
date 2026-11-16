@@ -16,12 +16,15 @@ export class RoundhouseClient {
     if (!r.ok) throw new Error(`Roundhouse HTTP ${r.status}`);
     return r.json();
   }
+  #query(filters: Record<string, string | undefined>): string {
+    return new URLSearchParams(Object.entries(filters).flatMap(([key, value]) => value === undefined ? [] : [[key, value]])).toString();
+  }
   // HTTP methods return unknown deliberately: callers may connect to either host version.
   incidents(): Promise<unknown> { return this.#request("/v1/incidents"); }
   history(id: string): Promise<unknown> { return this.#request(`/v1/incidents/${encodeURIComponent(id)}`); }
   event(monitor: string, idempotencyKey: string): Promise<unknown> { return this.#request("/v1/events", { monitor }, idempotencyKey); }
   approve(id: string, action: string): Promise<unknown> { return this.#request(`/v1/incidents/${encodeURIComponent(id)}/approve`, { action }); }
   capture(signals: Signal[]): Promise<unknown> { return this.#request("/v1/telemetry", signals); }
-  telemetry(filters: { service?: string; kind?: Signal["kind"]; name?: string; trace_id?: string; since?: string; until?: string } = {}): Promise<unknown> { return this.#request("/v1/telemetry?" + new URLSearchParams(filters)); }
-  analytics(filters: { service: string; kind: Signal["kind"]; name: string; since?: string; until?: string; bucket_seconds?: string }): Promise<unknown> { return this.#request("/v1/analytics?" + new URLSearchParams(filters)); }
+  telemetry(filters: { service?: string; kind?: Signal["kind"]; name?: string; trace_id?: string; since?: string; until?: string; before?: string; cursor?: string } = {}): Promise<unknown> { return this.#request("/v1/telemetry?" + this.#query(filters)); }
+  analytics(filters: { service: string; kind: Signal["kind"]; name: string; since?: string; until?: string; bucket_seconds?: string }): Promise<unknown> { return this.#request("/v1/analytics?" + this.#query(filters)); }
 }

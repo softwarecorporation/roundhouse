@@ -85,6 +85,8 @@ Diagnostics are GET endpoints. Roundhouse reads at most 4 KiB from each response
 
 Incident states are `queued`, `investigating`, `awaiting_approval`, `needs_attention`, and `resolved`. One active incident per monitor coalesces repeated failures and events. A healthy observation after manual recovery resolves an incident awaiting approval or operator attention. A model's recovery claim cannot resolve it.
 
+The native host binds persisted incidents to its validated configuration. An unchanged restart preserves pending approvals. A configuration change clears pending and granted approvals and moves unresolved incidents to `needs_attention` for operator reconciliation; authority for an old endpoint cannot transfer to a new endpoint with the same action name. The first upgrade from a database without this binding also fails closed for unresolved incidents. Reservations, action claims, event deduplication and resolved history are retained.
+
 Healthy checks never invoke a model. Investigations run serially while the scheduler and API remain available. A monitor interval is a minimum delay after its preceding probe, not a wall-clock cron schedule; probes currently run serially. Size the monitor set and timeouts accordingly.
 
 ## Understand the spending boundary

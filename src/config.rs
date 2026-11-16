@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub listen: String,
@@ -13,7 +13,7 @@ pub struct Config {
     pub monitors: Vec<Monitor>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProviderConfig {
     pub kind: ProviderKind,
@@ -22,14 +22,14 @@ pub struct ProviderConfig {
     pub api_key_env: String,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProviderKind {
     OpenaiCompatible,
     Anthropic,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Limits {
     pub daily_budget_microusd: u64,

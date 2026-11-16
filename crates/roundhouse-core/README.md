@@ -31,6 +31,8 @@ fn main() -> Result<(), String> {
 
 Typed APIs include `Config::parse`, `Session`, `tool_decision`, and `telemetry::Signal::parse_batch`. Hosts must enforce durable budgets and single-use action claims, supply actual approval authority, redact evidence before sending it to the provider, and verify recovery independently. The library's decision cannot replace those host responsibilities.
 
+`Config::parse` preflights each monitor's provider request through Rotary, rejecting invalid model identifiers and configured tool schemas that cannot fit its context bound. Runtime evidence and conversation growth still require the separate request-time size checks.
+
 Anthropic thinking/signature blocks are returned unchanged to the same provider for tool continuation. They are excluded from the investigation summary. Do not log raw provider conversations.
 
 ## Validate and package
@@ -44,4 +46,4 @@ cargo test --locked --manifest-path crates/roundhouse-core/Cargo.toml
 cargo build --locked --manifest-path crates/roundhouse-core/Cargo.toml --target wasm32-unknown-unknown --release
 ```
 
-MPL-2.0. Consume from the source repository or a source archive: Rotary 0.8 is a pinned Git dependency, not a published crates.io release. Registry publication is excluded; an ordinary registry-ready `.crate` is not claimed.
+MPL-2.0. Consume Roundhouse from the source repository or a source archive. This build pins published `rx4` 0.8.0 from crates.io. Roundhouse registry publication is excluded; an ordinary registry-ready `.crate` is not claimed.

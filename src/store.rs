@@ -33,8 +33,30 @@ impl Store {
             CREATE TABLE IF NOT EXISTS requests (incident TEXT NOT NULL REFERENCES incidents(id),
                 day TEXT NOT NULL, reserved INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS actions (incident TEXT PRIMARY KEY REFERENCES incidents(id),
-                day TEXT NOT NULL, name TEXT NOT NULL, outcome TEXT NOT NULL);")?;
+                day TEXT NOT NULL, name TEXT NOT NULL, outcome TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);")?;
         Ok(Self(Mutex::new(c)))
+    }
+
+    pub fn bind_configuration(&self, configuration: &str) -> DbResult<()> {
+        let mut c = self.0.lock().unwrap();
+        let tx = c.transaction()?;
+        let previous: Option<String> = tx
+            .query_row(
+                "SELECT value FROM settings WHERE key='configuration'",
+                [],
+                |r| r.get(0),
+            )
+            .optional()?;
+        if previous.as_deref() != Some(configuration) {
+            tx.execute("INSERT INTO audit(incident,kind,detail) SELECT id,'configuration_changed','{\"reason\":\"configuration changed or prior authority cannot be established; reconcile manually\"}' FROM incidents WHERE state!='resolved'", [])?;
+            tx.execute("UPDATE incidents SET state='needs_attention',pending_action=NULL,approved_action=NULL WHERE state!='resolved'", [])?;
+            tx.execute(
+                "INSERT OR REPLACE INTO settings VALUES('configuration',?)",
+                [configuration],
+            )?;
+        }
+        tx.commit()
     }
 
     pub fn recover_interrupted(&self) -> DbResult<()> {

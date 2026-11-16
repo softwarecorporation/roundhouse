@@ -65,6 +65,20 @@ fn configuration_rejects_production_auto_approval_and_unsafe_urls() {
         c["monitors"][0]["health_url"] = json!(url);
         assert!(Config::parse(&c.to_string()).is_err());
     }
+    for model in ["bad model".to_owned(), "\t".to_owned(), "x".repeat(257)] {
+        let mut c = base.clone();
+        c["provider"]["model"] = json!(model);
+        assert!(Config::parse(&c.to_string()).is_err());
+    }
+    let mut oversized = base.clone();
+    oversized["monitors"][0]["actions"][0]["name"] = json!("x".repeat(65536));
+    assert!(Config::parse(&oversized.to_string()).is_err());
+    let mut boundary = base.clone();
+    boundary["provider"]["model"] = json!("x".repeat(256));
+    let parsed = Config::parse(&boundary.to_string()).unwrap();
+    assert!(Session::new(Value::Null)
+        .request(&parsed.provider, &parsed.monitors[0].actions)
+        .is_ok());
     let mut c = base;
     c["monitors"][0]["actions"][0]["auto_approve"] = json!(true);
     assert!(Config::parse(&c.to_string()).is_err());

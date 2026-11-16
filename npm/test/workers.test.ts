@@ -36,7 +36,7 @@ beforeAll(async () => {
       if (url.host === "app.test") {
         if (url.pathname === "/health") return Response.json({ healthy }, { status: healthy ? 200 : 503 });
         expect(request.headers.get("authorization")).toBe("Bearer " + tokens.application);
-        if (url.pathname === "/status") return Response.json({ healthy, secret: "model-fixture", message: "untrusted evidence" });
+        if (url.pathname === "/status") return Response.json({ healthy, secret: "model-fixture", basic: "Basic " + btoa("reader:password-fixture"), message: "untrusted evidence" });
         if (url.pathname === "/restart") { actions++; expect(request.method).toBe("POST"); expect(request.headers.get("idempotency-key")).toContain(":restart"); if (recovered) healthy = true; return new Response("accepted", { status: 202 }); }
       }
       if (url.host === "model.test") {
@@ -44,6 +44,7 @@ beforeAll(async () => {
         expect(request.headers.get("authorization")).toBe("Bearer model-fixture");
         const body = await request.json();
         expect(JSON.stringify(body)).not.toContain("model-fixture");
+        expect(JSON.stringify(body)).not.toContain(btoa("reader:password-fixture"));
         return Response.json({ choices: [{ message: { role: "assistant", content: "The configured worker is stopped", tool_calls: [{ id: "call", type: "function", function: { name: "request_recovery", arguments: JSON.stringify({ action: proposal }) } }] } }] });
       }
       reads.push({ url: request.url, method: request.method, body: await request.text() });
@@ -52,7 +53,7 @@ beforeAll(async () => {
       if (upstreamMode === "limited") return new Response(null, { status: 429, headers: { "retry-after": "10" } });
       if (url.host === "posthog.test") { expect(request.headers.get("authorization")).toBe("Bearer posthog-fixture"); return Response.json({ id: 1, result: [{ count: 8 }], last_refresh: "2026-11-15T00:00:00Z", secret: "must not project" }); }
       if (url.host === "uptime.test") return Response.json({ data: { id: "2", attributes: { status: "down", auth_password: "DO NOT RETURN", request_headers: [{ secret: "DO NOT RETURN" }] } } });
-      if (url.host === "logs.test") { expect(request.headers.get("authorization")).toBe("Basic " + btoa("reader:password-fixture")); return new Response('{"dt":"2026-11-15 00:00:00","raw":"plain text"}\n{"dt":"2026-11-15 00:00:01","raw":"{\\"level\\":\\"ERROR\\"}"}\n'); }
+      if (url.host === "logs.test") { expect(request.headers.get("authorization")).toBe("Basic " + btoa("reader:password-fixture")); return new Response('{"dt":"2026-11-15 00:00:00","raw":"plain text"}\n' + JSON.stringify({ dt: "2026-11-15 00:00:01", raw: request.headers.get("authorization") }) + "\n"); }
       throw new Error("unexpected egress " + request.url);
     },
   });
@@ -75,6 +76,8 @@ test("atomic durable capture, replay/conflict, bounded queries, correlation, agg
   await request("/v1/telemetry", [event("a"), event("b", "different"), event("c")], tokens.event);
   expect(await request("/v1/telemetry", [event("a")], tokens.event)).toEqual({ accepted: 0, duplicates: 1 });
   await request("/v1/telemetry", [event("rollback"), { ...event("a"), name: "changed" }], tokens.event, 409);
+  expect((await request("/v1/telemetry")).records).toHaveLength(3);
+  await request("/v1/telemetry", [event("key-rollback"), { ...event("bad-key"), properties: { [tokens.application]: "credential-bearing key" } }], tokens.event, 400);
   expect((await request("/v1/telemetry")).records).toHaveLength(3);
   await request("/v1/telemetry", [{ ...event("bad"), properties: { api_key: "not-allowed" } }], tokens.event, 400);
   await request("/v1/telemetry", [{ ...event("bad"), timestamp: 0 }], tokens.event, 400);
@@ -112,6 +115,7 @@ test("fixed provider reads and authenticated template receivers preserve upstrea
   expect(JSON.stringify(await request("/v1/connections/bs"))).not.toContain("DO NOT RETURN");
   const logs = await request("/v1/connections/logs");
   expect(logs.records[0].raw).toBe("plain text"); expect(logs.possibly_truncated).toBe(false);
+  expect(logs.records[1].raw).toBe("Basic [REDACTED]");
   expect(reads.at(-1)?.body).toContain("remote(t123_source_logs) UNION ALL");
   expect(reads.at(-1)?.body).toContain("_row_type = 1"); expect(reads.at(-1)?.body).toContain("LIMIT 100 FORMAT JSONEachRow");
   upstreamMode = "limited"; expect((await request("/v1/connections/ph")).status).toBe(429);

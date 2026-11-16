@@ -67,3 +67,30 @@ fn daily_action_limit_is_shared_by_distinct_incidents() {
     store.claim().unwrap().unwrap();
     assert!(store.claim_action(&second, "restart", true, 1).is_err());
 }
+
+#[test]
+fn changed_or_unknown_configuration_revokes_authority_without_resetting_limits() {
+    for previous in [None, Some("before")] {
+        let store = Store::open(":memory:").unwrap();
+        if let Some(previous) = previous {
+            store.bind_configuration(previous).unwrap();
+        }
+        let id = store.enqueue("first", Some("original-event")).unwrap();
+        store.claim().unwrap().unwrap();
+        let mut limits = limits();
+        limits.daily_requests = 1;
+        store.reserve_request(&id, &limits).unwrap();
+        store.request_approval(&id, "restart").unwrap();
+        store.finish(&id, "awaiting_approval").unwrap();
+        assert!(store.approve(&id, "restart").unwrap());
+        store.bind_configuration("after").unwrap();
+        assert_eq!(store.list().unwrap()[0].state, "needs_attention");
+        assert!(store.list().unwrap()[0].pending_action.is_none());
+        assert!(!store.approve(&id, "restart").unwrap());
+        assert!(store.claim().unwrap().is_none());
+        assert!(store.claim_action(&id, "restart", false, 1).is_err());
+        assert_eq!(store.enqueue("first", Some("original-event")).unwrap(), id);
+        let next = store.enqueue("second", None).unwrap();
+        assert!(store.reserve_request(&next, &limits).is_err());
+    }
+}

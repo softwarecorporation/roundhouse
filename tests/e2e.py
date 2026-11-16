@@ -285,6 +285,34 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual(self.h.request(path, "POST", {"action": "restart_worker"})[0], 409)
         self.assertEqual(self.app.action_count, 1)
 
+    def test_pending_approval_survives_only_an_unchanged_configuration(self):
+        self.start(production=True)
+        incident = self.h.wait_state("awaiting_approval")
+        self.h.stop()
+        self.h.start()
+        path = f"/v1/incidents/{incident['id']}/approve"
+        self.assertEqual(self.h.request(path, "POST", {"action": "restart_worker"})[0], 200)
+        self.h.wait_state("resolved")
+        self.assertEqual(self.app.action_count, 1)
+
+    def test_changed_action_target_invalidates_pending_approval_on_restart(self):
+        self.start(production=True)
+        incident = self.h.wait_state("awaiting_approval")
+        self.h.stop()
+        replacement = TestApplication()
+        try:
+            self.h.config["monitors"][0]["actions"][0]["url"] = replacement.url + "/recover"
+            self.h.start()
+            path = f"/v1/incidents/{incident['id']}/approve"
+            self.assertEqual(self.h.request(path, "POST", {"action": "restart_worker"})[0], 409)
+            self.h.wait_state("needs_attention")
+            self.assertEqual(self.app.action_count, 0)
+            self.assertEqual(replacement.action_count, 0)
+            history = self.h.request("/v1/incidents/" + incident["id"])[1]["history"]
+            self.assertIn("configuration_changed", [e["kind"] for e in history])
+        finally:
+            replacement.close()
+
     def test_successful_action_does_not_imply_recovery(self):
         self.app.noop = True
         self.start()

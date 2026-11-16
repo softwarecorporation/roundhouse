@@ -38,6 +38,8 @@ const incidents = await operator.incidents();
 
 Keep operator tokens server-side. The event client cannot read incidents or approve actions. `capture` only adds evidence; `event` requests an investigation for an existing monitor. API responses are `unknown` because the client also supports the separately versioned native host. Native does not expose Workers telemetry routes.
 
+`telemetry` accepts the returned page's `before` and `cursor` values as strings, alongside the original time window and filters, to read subsequent pages. Optional filter values set to `undefined` are omitted. Telemetry batches containing credential-bearing object keys are rejected rather than silently renaming keys and risking collisions.
+
 `@tschk/roundhouse/node` exports the Rust driver for Node and Bun. `@tschk/roundhouse/core` initializes a precompiled WebAssembly module in Workers-compatible bundlers. These are the same Rust contracts, not schedulers or credential stores.
 
 ## Deploy the Workers host

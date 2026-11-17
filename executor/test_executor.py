@@ -309,7 +309,8 @@ AuthorizedKeysFile {fixture / 'client.pub'}
 StrictModes no
 PasswordAuthentication no
 KbdInteractiveAuthentication no
-UsePAM no
+AuthenticationMethods publickey
+UsePAM yes
 AllowUsers {pwd.getpwuid(os.getuid()).pw_name}
 DisableForwarding yes
 ForceCommand {remote}

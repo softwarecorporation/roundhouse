@@ -6,7 +6,9 @@ The native Linux server embeds Rotary's native agent. Workers embeds the actual 
 
 ## Build and pack
 
-Requires Bun, Rust 1.100, the `wasm32-unknown-unknown` target, and `wasm-bindgen-cli` 0.2.130. From the repository root:
+Building requires Bun 1.4.4, Rust 1.100 with its documentation component, the `wasm32-unknown-unknown` target, and `wasm-bindgen-cli` 0.2.130. Full tests additionally require Linux, Python 3, bubblewrap, OpenSSH server, and working unprivileged user namespaces. See the [setup guide](https://github.com/tschk/roundhouse/blob/main/docs/setup.md) for prerequisites and secure hosting.
+
+From the repository root:
 
 ```sh
 rustup target add wasm32-unknown-unknown
@@ -16,11 +18,14 @@ bun run --cwd npm build
 bun run --cwd npm typecheck
 bun run --cwd npm test
 bun pm --cwd npm pack
+bun run --cwd npm test:package
 ```
 
-Install the resulting tarball into a consumer with `bun add /path/to/tschk-roundhouse-0.2.0.tgz`. The package includes precompiled Wasm, declarations, the matching portable Rust source in `rust/`, and dependency notices in `licenses/`. The virtual shell interpreter and its JavaScript dependencies are bundled into the Worker. No external npm dependency resolution is needed at runtime.
+Install the resulting tarball into a consumer with `bun add /path/to/tschk-roundhouse-0.2.0.tgz`. Consumers do not need Rust, wasm-bindgen, Python, or bubblewrap unless they rebuild or run the separate native executor. The package includes precompiled Wasm, declarations, the matching portable Rust source in `rust/`, and dependency notices in `licenses/`. The virtual shell interpreter and its JavaScript dependencies are bundled into the Worker. No external npm dependency resolution is needed at runtime.
 
-See the [operations tool reference](../docs/tools.md) for the extensible catalog, virtual Bash, restricted fetch, exact privileged approvals, Linux execution, and rollback boundaries. The original recovery demo remains a test, not a capability ceiling.
+`test:package` installs that archive into a fresh directory, checks imports and declarations through the installed package exports, and runs the Worker suites against its installed JS and Wasm. It does not publish or deploy anything. An optional first argument selects another tarball. Successful runs remove their disposable consumer directory.
+
+See the [operations tool reference](https://github.com/tschk/roundhouse/blob/main/docs/tools.md) for the extensible catalog, virtual Bash, restricted fetch, exact privileged approvals, Linux execution, and rollback boundaries. The original recovery demo remains a test, not a capability ceiling.
 
 ## Use the client
 
@@ -59,6 +64,7 @@ Bundle this entry as an ES module and retain the external `wasm/roundhouse_core_
 - `ROUNDHOUSE_CONFIG` containing JSON matching `src/types.ts` and the example below.
 - Secret bindings `PROVIDER_API_KEY`, `OPERATOR_TOKEN`, and distinct `EVENT_TOKEN`.
 - Optional secret `APPLICATION_TOKEN`, attached only to configured diagnostic and recovery endpoints, never provider telemetry reads.
+- Optional secret `EXECUTOR_TOKEN`, attached only to the configured `remote_exec` endpoint. Keep its separate recovery credential off the Worker.
 - Optional `CONNECTIONS_JSON` and dedicated provider credentials from the [connection guide](https://github.com/tschk/roundhouse/blob/main/docs/integrations.md).
 
 Enable Workers logs and traces in your deployment settings. Do not log bindings or request Authorization headers. A deployment is disabled until an operator calls `POST /v1/start` with bearer authentication. `POST /v1/stop` disables future work and deletes its alarm. An in-flight provider call can finish, but a stop before an action claim prevents the action.
@@ -100,7 +106,7 @@ Generated tokens live only in Git-ignored `.roundhouse-test-secrets.json` with m
 
 Only fresh successful probes resolve incidents. An accepted recovery POST or a provider webhook claiming resolution does not. Exact production approval is single-use and bound to an incident, action, and configuration. Action claims and reservations persist before external I/O. Uncertain actions are not replayed. Restart interrupts investigation into `needs_attention` rather than reissuing side effects.
 
-Alarms wake at roughly five-second intervals while enabled; monitor intervals are lower bounds, not timing SLAs. Probes and investigation are serial in one controller, so a long investigation delays other checks. There is no multi-region quorum, missed-check SLA calculation, automatic investigation retry, shell tool, general HTTP executor, or high-availability scheduler.
+Alarms wake at roughly five-second intervals while enabled; monitor intervals are lower bounds, not timing SLAs. Probes and investigation are serial in one controller, so a long investigation delays other checks. There is no multi-region quorum, missed-check SLA calculation, automatic investigation retry, unrestricted network tool, or high-availability scheduler. Virtual Bash is an interpreter, not a native shell. Real Bash requires the separate Linux executor and explicit privileged approval.
 
 Local telemetry is capped at 100,000 records and 30 days, with exact-match queries and bounded aggregates. Probe history retains 10,000 observations. Incident history and action/budget records grow independently and require operator storage planning. There is no PostHog/Better Stack parity, session replay, OTLP receiver, counter/histogram support, or percentile inference. See the [coverage reference](https://github.com/tschk/roundhouse/blob/main/docs/observability.md).
 

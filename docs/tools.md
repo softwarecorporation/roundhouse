@@ -2,6 +2,8 @@
 
 The Workers host advertises a configured tool catalog through Rotary's real portable agent. The two original tools remain compatibility adapters, not the product's capability ceiling. The native Rust HTTP host retains its original fixed-endpoint contract. Use Workers with the Linux executor for the expanded tool catalog.
 
+For prerequisites, archive consumption, bindings, and start/stop operations, follow the [setup guide](setup.md). The [executor installation guide](../executor/README.md#install-on-an-always-on-linux-host) covers separate supervised agent and recovery listeners, TLS, hard quotas, backups, and retention.
+
 ## Configured tools
 
 Each monitor accepts up to 32 `tools`. A tool has `name`, `description`, `input_schema`, `adapter`, `effect`, and host-only `options`. Names must be unique and cannot replace `inspect_system` or `request_recovery`. The schema subset supports closed objects, required properties, bounded strings and arrays, enums, booleans, numbers, and integers. Unsupported keywords fail validation instead of silently weakening a schema.

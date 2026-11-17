@@ -1,0 +1,27 @@
+[Unit]
+Description=Roundhouse private executor recovery listener
+After=local-fs.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=roundhouse-executor
+Group=roundhouse-executor
+WorkingDirectory=/var/lib/roundhouse-executor
+ExecStart=/usr/bin/python3 /opt/roundhouse-executor/executor.py --state /var/lib/roundhouse-executor/state serve --role recovery --bind 127.0.0.1 --port 8789
+Environment=PATH=/usr/bin:/bin
+UMask=0077
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+TimeoutStopSec=20
+LimitCORE=0
+MemoryMax=128M
+TasksMax=32
+CPUQuota=25%
+# Independent cgroup and lifecycle. Do not add Requires, PartOf, or BindsTo
+# dependencies on the agent. Both processes still trust the same state owner.
+
+[Install]
+WantedBy=multi-user.target

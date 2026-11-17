@@ -1,0 +1,29 @@
+# Review before installing in an existing nginx http {} context.
+# Provision DNS, certificate renewal, firewall rules, and caller authentication
+# separately. Replace the hostname and certificate paths. No recovery proxy.
+server {
+    listen 443 ssl;
+    server_name executor.example.com;
+    ssl_certificate /etc/roundhouse-executor/tls/fullchain.pem;
+    ssl_certificate_key /etc/roundhouse-executor/tls/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    client_max_body_size 16k;
+    client_body_timeout 15s;
+    access_log off;
+
+    location = /execute {
+        limit_except POST { deny all; }
+        proxy_pass http://127.0.0.1:8788;
+        proxy_http_version 1.1;
+        proxy_set_header Connection close;
+        proxy_set_header Authorization $http_authorization;
+        proxy_set_header Idempotency-Key $http_idempotency_key;
+        proxy_request_buffering on;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 15s;
+        proxy_next_upstream off;
+    }
+
+    location / { return 404; }
+}

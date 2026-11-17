@@ -1,0 +1,28 @@
+[Unit]
+Description=Roundhouse sandboxed executor agent listener
+After=local-fs.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=roundhouse-executor
+Group=roundhouse-executor
+WorkingDirectory=/var/lib/roundhouse-executor
+ExecStart=/usr/bin/python3 /opt/roundhouse-executor/executor.py --state /var/lib/roundhouse-executor/state serve --role agent --bind 127.0.0.1 --port 8788
+Environment=PATH=/usr/bin:/bin
+UMask=0077
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+TimeoutStopSec=20
+LimitCORE=0
+MemoryMax=512M
+TasksMax=256
+CPUQuota=100%
+# Do not copy the native host's sandbox flags here. Bubblewrap must create
+# user, mount, PID, and network namespaces. See executor/README.md for checks.
+# NoNewPrivileges, RestrictNamespaces, and ProtectSystem need host-specific tests.
+
+[Install]
+WantedBy=multi-user.target

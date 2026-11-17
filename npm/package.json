@@ -32,6 +32,7 @@
     "build": "bun scripts/build.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test test",
+    "test:package": "bun scripts/verify-package.ts",
     "prepack": "bun run build"
   },
   "devDependencies": {

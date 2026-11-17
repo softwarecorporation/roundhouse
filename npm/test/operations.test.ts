@@ -70,7 +70,7 @@ finally:
     }
     return new Response("unexpected", { status: 500 });
   } });
-  const root = resolve(import.meta.dir, "..");
+  const root = process.env.ROUNDHOUSE_PACKAGE_DIR ?? resolve(import.meta.dir, "..");
   const config = { provider: { kind: "openai_compatible", base_url: "https://model.test/v1", model: "fixture", max_output_tokens: 256 }, limits: { daily_budget_microusd: 1000, reserve_per_request_microusd: 1, daily_requests: 30, requests_per_incident: 12, daily_actions: 1, investigation_timeout_seconds: 20 }, monitors: [{ id: "app", health_url: "https://app.test/health", expected_status: 200, interval_seconds: 300, timeout_seconds: 2, environment: "production", diagnostics: [], actions: [], tools }] };
   const mf = new Miniflare({ name: "operations", compatibilityDate: "2026-08-06", modulesRoot: root,
     modules: [{ type: "ESModule", path: resolve(root, "dist/workers.js") }, { type: "CompiledWasm", path: resolve(root, "wasm/roundhouse_core_bg.wasm") }],

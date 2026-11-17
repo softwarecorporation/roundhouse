@@ -1,6 +1,6 @@
 # Roundhouse
 
-Always-on agentic operations built on [Rotary](https://github.com/tschk/rotary). Roundhouse watches configured HTTP health endpoints, investigates failures with your model, and requests named recovery actions. Only independent health checks can resolve an incident.
+Always-on agentic operations built on [Rotary](https://github.com/tschk/rotary). Roundhouse watches configured HTTP health endpoints, investigates failures with your model, and executes configured tools within explicit authority. Only independent health checks can resolve an incident.
 
 Run it as a Cloudflare Worker with SQLite Durable Objects, or on a Linux server with persistent storage and a supervisor. No laptop, interactive agent session, Docker daemon, or desktop connection is required. This is API-first software, not a dashboard or a managed hosting service.
 
@@ -10,7 +10,7 @@ Run it as a Cloudflare Worker with SQLite Durable Objects, or on a Linux server 
 - [Portable Rust crate](crates/roundhouse-core/README.md): `roundhouse-core` exposes configuration, provider-conversation, telemetry-validation, and permission contracts for another host. It is a library, not a scheduler by itself.
 - [Native server](deploy/README.md): the root `roundhouse` Cargo package embeds Rotary's full agent loop with a persistent SQLite database. The existing API and safety policy remain supported.
 
-These are source packages, not published npm or crates.io releases. Build and pack locally using the linked instructions. The native and Workers hosts have deliberately different provider configuration formats and telemetry support.
+These are source packages, not published npm or crates.io releases. Follow the [setup and package-consumer guide](docs/setup.md) to build, install, and verify an archive without registry publication. The native and Workers hosts have deliberately different provider configuration formats, tools, and telemetry support.
 
 Workers runs Rotary's genuine `rx4::lite::Agent`, built with `default-features = false, features = ["lite"]`. Rotary owns the resumable provider conversation and shared permission/redaction code; Roundhouse supplies monitoring policy, network I/O, persistence, and exact recovery authority. Native capabilities remain in `rx4::Agent`; they are not available inside Workers. See [source provenance](crates/roundhouse-core/UPSTREAM.md). The direct Wasm bridge follows the inspected [eqts](https://github.com/tschk/eqts) example; eqts supplies neither hosting nor a native runtime inside Workers.
 
@@ -25,9 +25,10 @@ Reads, incoming notifications, and forwarding are distinct. There is no automati
 - Interval-based health checks and authenticated, idempotent event intake.
 - SQLite incident history, investigation summaries, evidence, request reservations, approvals, and action outcomes across restarts.
 - Native: Rotary's actual agent loop, provider clients, scope filtering, tool registry, and permission gates. Workers: Rotary's lite agent, shared permissions, and redaction.
-- Two model tools: `inspect_system` and `request_recovery`. No shell, filesystem, arbitrary HTTP, MCP, or subagent tools.
+- Native exposes `inspect_system` and `request_recovery`. Workers adds a [configured operations catalog](docs/tools.md) with restricted HTTPS fetch, virtual Bash and files, versioned restore, and approved calls to an independent Linux executor. Neither host exposes unrestricted MCP or subagents.
 - Separate event and operator credentials. Event credentials cannot read incident history or authorize recovery.
 - Production recovery requires a single-use approval for the exact incident and named action. Configuration rejects production auto-approval.
+- Registered privileged tools require digest-bound approval in every environment. Native Bash and optional real SSH live in the separate executor, never inside Workers. Its offline rollback restores workspace files independently of the controller and model.
 - Persistent daily request and action limits, per-incident request limits, a request-reservation budget, context size limits, and investigation deadlines.
 - One action attempt per incident, committed before network I/O. Unknown outcomes and interrupted investigations require operator reconciliation, not blind retries.
 - A real-model demo against an isolated HTTP application, plus credential-free end-to-end failure tests.

@@ -1,6 +1,10 @@
-# Run Roundhouse without a laptop
+# Run the native fixed-action host without a laptop
 
 Choose an always-on Linux server with persistent local storage and network access to your model and application endpoints. Do not treat an interactive development orb as production hosting.
+
+This page deploys the native Rust `roundhouse` host with configured HTTP diagnostics and named recovery actions. Its `roundhouse.service` and Compose hardening are for that host, not for arbitrary Bash execution. It does not launch the independent Python executor or the npm Worker controller.
+
+For the sandboxed Bash service, follow [the executor's always-on Linux setup](../executor/README.md#install-on-an-always-on-linux-host). Reviewable executor units and an agent-only TLS proxy example are in [`deploy/executor`](executor/). Do not reuse this page's service unit for Bubblewrap.
 
 ## Prepare the release
 

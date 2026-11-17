@@ -13,7 +13,7 @@ function command(bin: string, args: string[]) {
 command("cargo", ["build", "--locked", "--manifest-path", "crates/roundhouse-core/Cargo.toml", "--target", "wasm32-unknown-unknown", "--release"]);
 command("wasm-bindgen", ["crates/roundhouse-core/target/wasm32-unknown-unknown/release/roundhouse_core.wasm", "--out-dir", "npm/wasm", "--target", "web"]);
 await mkdir(new URL("../dist", import.meta.url), { recursive: true });
-await build({ entryPoints: ["src/client.ts", "src/core.ts", "src/node.ts", "src/workers.ts"], outdir: "dist", bundle: true, format: "esm", platform: "neutral", target: "es2022", external: ["cloudflare:workers", "node:*", "*.wasm"] });
+const bundle = await build({ entryPoints: ["src/client.ts", "src/core.ts", "src/node.ts", "src/workers.ts"], outdir: "dist", bundle: true, metafile: true, format: "esm", platform: "neutral", mainFields: ["browser", "module", "main"], target: "es2022", alias: { "node:zlib": "./src/virtual-zlib.ts" }, external: ["cloudflare:workers", "node:*", "*.wasm"] });
 command("bun", ["npm/node_modules/typescript/bin/tsc", "-p", "npm/tsconfig.json"]);
 await copyFile(root + "LICENSE", root + "npm/LICENSE");
 await copyFile(root + "crates/roundhouse-core/UPSTREAM.md", root + "npm/UPSTREAM.md");
@@ -28,6 +28,14 @@ if (metadata.status !== 0) throw new Error("dependency metadata failed");
 const graph: unknown = JSON.parse(metadata.stdout);
 if (!graph || typeof graph !== "object" || !("packages" in graph) || !Array.isArray(graph.packages)) throw new Error("invalid dependency graph");
 await rm(root + "npm/licenses", { recursive: true, force: true });
+const jsPackages = new Set(Object.keys(bundle.metafile.inputs).filter(p => p.startsWith("node_modules/")).map(p => p.split("/").slice(0, p.split("/")[1].startsWith("@") ? 3 : 2).join("/")));
+for (const directory of jsPackages) {
+  const files = (await readdir(directory, { withFileTypes: true })).filter(f => f.isFile() && /^(LICENSE|LICENCE|COPYING|NOTICE)/i.test(f.name));
+  if (!files.length) throw new Error(`bundled JavaScript dependency notices missing: ${directory}`);
+  const destination = join(root, "npm/licenses/js", directory.slice("node_modules/".length));
+  await mkdir(destination, { recursive: true });
+  for (const f of files) await copyFile(join(directory, f.name), join(destination, f.name));
+}
 for (const p of graph.packages) {
   if (!p || typeof p !== "object" || typeof p.name !== "string" || typeof p.version !== "string" || typeof p.manifest_path !== "string" || typeof p.license !== "string") throw new Error("dependency license metadata missing");
   const directory = dirname(p.manifest_path);

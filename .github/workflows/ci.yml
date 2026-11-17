@@ -37,6 +37,15 @@ jobs:
       - run: bun install --cwd npm --frozen-lockfile
       - run: bun run --cwd npm build
       - run: bun run --cwd npm typecheck
+      - name: Prepare isolated Linux execution fixtures
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap openssh-server
+          sudo mkdir -p /run/sshd
+          if test -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+      - run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s executor -v
       - run: bun run --cwd npm test
       - run: bun pm --cwd npm pack
       - run: python3 tools/audit_release.py

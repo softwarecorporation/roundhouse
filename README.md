@@ -70,7 +70,9 @@ Compatibility is not a claim that every provider or model has been tested. Confi
 
 Secrets are supplied only through environment variables. `ROUNDHOUSE_OPERATOR_TOKEN` and `ROUNDHOUSE_EVENT_TOKEN` must be distinct. Optional diagnostic and recovery credentials use `token_env` and are attached as bearer headers; omit `token_env` for an endpoint without authentication. Configuration never contains secret values.
 
-Recovery actions are fixed POST endpoints controlled by the operator. The model supplies only an allowed action name, never a URL, command, or arbitrary request body. Roundhouse sends `{"incident_id":"…"}` and `Idempotency-Key: <incident-id>:<action-name>`. Implement idempotency in the receiving service too. An HTTP 2xx means accepted, not recovered.
+Legacy recovery actions are fixed POST endpoints controlled by the operator. The model supplies only an allowed action name for this adapter. Roundhouse sends `{"incident_id":"…"}` and `Idempotency-Key: <incident-id>:<action-name>`. Implement idempotency in the receiving service too. An HTTP 2xx means accepted, not recovered.
+
+The Workers host also supports an [extensible operations catalog](docs/tools.md): bounded web fetch, virtual Bash and files, versioned restore, and digest-approved calls to a separate [Linux executor](executor/README.md). Workers cannot start native processes. The executor provides real isolated Bash, independent recovery, and optional allowlisted SSH. These capabilities are opt-in and are not limited to the original demo's two tools.
 
 Diagnostics are GET endpoints. Roundhouse reads at most 4 KiB from each response, redacts configured credential values and common secret patterns, and treats the result as untrusted evidence. Only expose diagnostic data you are willing to send to your model provider. Pattern redaction cannot guarantee removal of unknown secrets or personal data.
 

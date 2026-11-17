@@ -1,4 +1,4 @@
-import type { Config, Accepted, Monitor, Call, Signal } from "./types.js";
+import type { Config, Accepted, Monitor, Call, Signal, RegisteredTool } from "./types.js";
 
 export function bridge(invoke: (input: string) => string) {
   function run(input: unknown): unknown {
@@ -13,7 +13,12 @@ export function bridge(invoke: (input: string) => string) {
     runtime(): unknown { return run({ op: "runtime" }); },
     config(json: string): Config { return run({ op: "config", json }) as Config; },
     start(evidence: unknown): unknown { return run({ op: "start", evidence }); },
-    request(session: unknown, provider: Config["provider"], actions: Monitor["actions"]): unknown { return run({ op: "request", session, provider, actions }); },
+    request(session: unknown, provider: Config["provider"], actions: Monitor["actions"], tools: RegisteredTool[] = []): unknown { return run({ op: "request", session, provider, actions, tools }); },
+    validateTool(tool: RegisteredTool, args: unknown): boolean {
+      const result = run({ op: "validate_tool", tool, args });
+      if (result !== true) throw new Error("invalid tool validation response");
+      return result;
+    },
     accept(session: unknown, kind: Config["provider"]["kind"], response: unknown): Accepted { return run({ op: "accept", session, kind, response }) as Accepted; },
     results(session: unknown, results: unknown[]): unknown { return run({ op: "results", session, results }); },
     telemetry(json: string): Signal[] { return run({ op: "telemetry", json }) as Signal[]; },

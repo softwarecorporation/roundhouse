@@ -1,5 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 import { core } from "./core.js";
+import { defaultTools, invocationDigest, type ToolRegistry } from "./operations.js";
+import { WorkspaceStore } from "./workspace.js";
+export { ToolRegistry, defaultTools } from "./operations.js";
 import { TelemetryStore, TelemetryError } from "./telemetry.js";
 import { parseConnections, readConnection, receive, type Connection, type ConnectionSecrets } from "./connections.js";
 import type { Config, Monitor, Incident, IncidentState } from "./types.js";
@@ -13,6 +16,7 @@ export interface Env extends ConnectionSecrets {
   PROVIDER_API_KEY: string;
   APPLICATION_TOKEN?: string;
   CONNECTIONS_JSON?: string;
+  EXECUTOR_TOKEN?: string;
 }
 
 class HttpError extends Error { constructor(readonly status: number) { super(`HTTP ${status}`); } }
@@ -67,13 +71,18 @@ export class Roundhouse extends DurableObject<Env> {
   readonly fingerprint: string;
   readonly connections: Connection[];
   readonly telemetry: TelemetryStore;
+  readonly workspace: WorkspaceStore;
+  readonly tools: ToolRegistry;
   private running = false;
 
-  constructor(ctx: DurableObjectState, env: Env) {
+  constructor(ctx: DurableObjectState, env: Env, tools = defaultTools()) {
     super(ctx, env);
     this.config = core.config(env.ROUNDHOUSE_CONFIG);
     this.connections = parseConnections(env.CONNECTIONS_JSON, this.config.monitors.map(m => m.id));
     this.telemetry = new TelemetryStore(ctx.storage);
+    this.workspace = new WorkspaceStore(ctx.storage);
+    this.tools = tools;
+    for (const m of this.config.monitors) for (const tool of m.tools ?? []) this.tools.validate(tool);
     if (!env.OPERATOR_TOKEN?.trim() || !env.EVENT_TOKEN?.trim() || !env.PROVIDER_API_KEY?.trim() || env.OPERATOR_TOKEN === env.EVENT_TOKEN) throw new Error("missing or invalid secret bindings");
     this.fingerprint = JSON.stringify(this.config);
     ctx.storage.sql.exec(`
@@ -84,10 +93,12 @@ export class Roundhouse extends DurableObject<Env> {
       CREATE TABLE IF NOT EXISTS daily(day TEXT PRIMARY KEY, requests INTEGER NOT NULL DEFAULT 0, reserved INTEGER NOT NULL DEFAULT 0, actions INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE IF NOT EXISTS schedule(monitor TEXT PRIMARY KEY, next_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS invocations(id TEXT PRIMARY KEY, incident TEXT NOT NULL, tool TEXT NOT NULL, args TEXT NOT NULL, digest TEXT NOT NULL, config TEXT NOT NULL, state TEXT NOT NULL, expires INTEGER NOT NULL, result TEXT);
       CREATE TABLE IF NOT EXISTS probes(seq INTEGER PRIMARY KEY AUTOINCREMENT, service TEXT NOT NULL, at INTEGER NOT NULL, healthy INTEGER NOT NULL, status INTEGER, duration_ms INTEGER NOT NULL);
     `);
     ctx.storage.transactionSync(() => {
       const interrupted = this.rows<Incident>("SELECT * FROM incidents WHERE state='investigating'");
+      ctx.storage.sql.exec("UPDATE invocations SET state='unknown' WHERE state='claimed'");
       for (const i of interrupted) {
         this.state(i.id, "needs_attention");
         this.audit(i.id, "interrupted", { note: "reconcile manually; no action or model replay" });
@@ -104,6 +115,7 @@ export class Roundhouse extends DurableObject<Env> {
       text = text.split(btoa(`${this.env.BETTERSTACK_LOGS_USER}:${this.env.BETTERSTACK_LOGS_PASSWORD}`)).join("[REDACTED]");
     }
     for (const s of [this.env.PROVIDER_API_KEY, this.env.OPERATOR_TOKEN, this.env.EVENT_TOKEN, this.env.APPLICATION_TOKEN, this.env.POSTHOG_READ_KEY, this.env.BETTERSTACK_UPTIME_TOKEN, this.env.BETTERSTACK_LOGS_USER, this.env.BETTERSTACK_LOGS_PASSWORD, this.env.POSTHOG_RECEIVER_TOKEN, this.env.BETTERSTACK_RECEIVER_TOKEN].filter((s): s is string => !!s).sort((a, b) => b.length - a.length)) text = text.split(s).join("[REDACTED]");
+    if (this.env.EXECUTOR_TOKEN) text = text.split(this.env.EXECUTOR_TOKEN).join("[REDACTED]");
     return core.redact(text);
   }
   private scrub(value: unknown): unknown {
@@ -116,7 +128,8 @@ export class Roundhouse extends DurableObject<Env> {
     return value;
   }
   private audit(id: string, kind: string, detail: unknown): void {
-    this.ctx.storage.sql.exec("INSERT INTO history(incident,kind,detail,at) VALUES(?,?,?,?)", id, kind, JSON.stringify(this.scrub(detail)).slice(0, 16384), Date.now());
+    const text = JSON.stringify(this.scrub(detail));
+    this.ctx.storage.sql.exec("INSERT INTO history(incident,kind,detail,at) VALUES(?,?,?,?)", id, kind, text.length <= 16384 ? text : JSON.stringify({ truncated: true, preview: text.slice(0, 8192) }), Date.now());
   }
   private state(id: string, state: IncidentState): void { this.ctx.storage.sql.exec("UPDATE incidents SET state=? WHERE id=?", state, id); }
   private enabled(): boolean { return this.rows<{ value: number }>("SELECT value FROM settings WHERE key='enabled'")[0]?.value === 1; }
@@ -186,6 +199,20 @@ export class Roundhouse extends DurableObject<Env> {
         return Response.json({ enabled: false, in_flight: this.running });
       }
       if (request.method === "GET" && path === "/v1/incidents") return Response.json({ incidents: this.rows("SELECT id,monitor,state,pending_action,approved_action,attempted,requests,created_at FROM incidents ORDER BY created_at DESC LIMIT 200") });
+      if (request.method === "GET" && path === "/v1/invocations") return Response.json(this.scrub(this.rows("SELECT * FROM invocations ORDER BY expires DESC LIMIT 200")));
+      const invocation = path.match(/^\/v1\/invocations\/([^/]+)\/approve$/);
+      if (invocation && request.method === "POST") {
+        const digest = await oneField(request, "digest");
+        this.ctx.storage.transactionSync(() => {
+          const row = this.rows<{ incident: string; config: string; state: string; digest: string; expires: number }>("SELECT * FROM invocations WHERE id=?", invocation[1])[0];
+          if (!row || row.state !== "pending" || row.digest !== digest || row.config !== this.fingerprint || row.expires < Date.now() || this.incident(row.incident).state !== "awaiting_approval") throw new HttpError(409);
+          this.ctx.storage.sql.exec("UPDATE invocations SET state='approved' WHERE id=?", invocation[1]);
+          this.ctx.storage.sql.exec("UPDATE incidents SET state='queued',pending_action=NULL WHERE id=?", row.incident);
+          this.audit(row.incident, "invocation_approved", { id: invocation[1], digest });
+        });
+        if (this.enabled()) await this.ctx.storage.setAlarm(Date.now() + 1);
+        return Response.json({ approved: invocation[1] });
+      }
       const match = path.match(/^\/v1\/incidents\/([^/]+)(\/approve)?$/);
       if (match && request.method === "GET" && !match[2]) {
         const i = this.incident(match[1]);
@@ -195,7 +222,7 @@ export class Roundhouse extends DurableObject<Env> {
         const action = await oneField(request, "action");
         this.ctx.storage.transactionSync(() => {
           const i = this.incident(match[1]);
-          if (i.state !== "awaiting_approval" || i.pending_action !== action || i.attempted || i.config !== this.fingerprint) throw new HttpError(409);
+          if (action.startsWith("invocation:") || i.state !== "awaiting_approval" || i.pending_action !== action || i.attempted || i.config !== this.fingerprint) throw new HttpError(409);
           this.ctx.storage.sql.exec("UPDATE incidents SET state='queued',approved_action=?,pending_action=NULL WHERE id=?", action, i.id);
           this.audit(i.id, "approved", { action });
         });
@@ -250,18 +277,59 @@ export class Roundhouse extends DurableObject<Env> {
     });
   }
 
+  private async executeTool(i: Incident, m: Monitor, tool: NonNullable<Monitor["tools"]>[number], args: unknown, id: string, signal: AbortSignal, privileged: boolean): Promise<unknown> {
+    core.validateTool(tool, args);
+    this.ctx.storage.transactionSync(() => {
+      const fresh = this.incident(i.id);
+      if (!this.enabled() || fresh.config !== this.fingerprint || signal.aborted) throw new Error("execution stopped");
+      if (privileged) {
+        const row = this.rows<{ state: string; expires: number }>("SELECT state,expires FROM invocations WHERE id=?", id)[0];
+        if (!row || row.state !== "approved" || row.expires < Date.now() || fresh.attempted) throw new Error("authority unavailable");
+        const day = new Date().toISOString().slice(0, 10);
+        this.ctx.storage.sql.exec("INSERT OR IGNORE INTO daily(day) VALUES(?)", day);
+        if (this.rows<{ actions: number }>("SELECT actions FROM daily WHERE day=?", day)[0].actions >= this.config.limits.daily_actions) throw new Error("action limit");
+        this.ctx.storage.sql.exec("UPDATE daily SET actions=actions+1 WHERE day=?", day);
+        this.ctx.storage.sql.exec("UPDATE incidents SET attempted=1 WHERE id=?", i.id);
+        this.ctx.storage.sql.exec("UPDATE invocations SET state='claimed' WHERE id=?", id);
+      }
+      this.audit(i.id, "tool_claimed", { id, tool: tool.name, args });
+    });
+    try {
+      const value = this.scrub(await this.tools.execute(tool, args, { monitor: m.id, invocation: id, signal, workspace: this.workspace, executorToken: this.env.EXECUTOR_TOKEN }));
+      if (privileged) this.ctx.storage.sql.exec("UPDATE invocations SET state='completed',result=? WHERE id=?", JSON.stringify(value), id);
+      this.audit(i.id, "tool_result", { id, value });
+      return value;
+    } catch (e) {
+      if (privileged) this.ctx.storage.sql.exec("UPDATE invocations SET state='unknown' WHERE id=?", id);
+      this.audit(i.id, "tool_failed", { id, outcome: privileged ? "unknown; reconcile with executor before retry" : "failed" });
+      throw e;
+    }
+  }
+
   private async investigate(i: Incident, m: Monitor): Promise<void> {
     const signal = AbortSignal.timeout(this.config.limits.investigation_timeout_seconds * 1000);
     let phase = "initial_evidence";
     try {
       const initial = await this.health(m, signal);
       if (initial.healthy) { this.audit(i.id, "verification", initial); this.state(i.id, "resolved"); return; }
+      const approved = this.rows<{ id: string; tool: string; args: string; expires: number; config: string }>("SELECT * FROM invocations WHERE incident=? AND state='approved'", i.id);
+      for (const row of approved) {
+        const tool = m.tools?.find(t => t.name === row.tool);
+        if (!tool || row.config !== this.fingerprint || row.expires < Date.now()) throw new Error("expired invocation");
+        await this.executeTool(i, m, tool, JSON.parse(row.args), row.id, signal, true);
+      }
+      if (approved.length) {
+        const verified = await this.health(m, signal);
+        this.audit(i.id, "verification", verified);
+        this.state(i.id, verified.healthy ? "resolved" : "needs_attention");
+        return;
+      }
       let session = core.start({ incident: i.id, environment: m.environment, actions: m.actions.map(a => ({ name: a.name, description: a.description, automatic: a.auto_approve })), approved_action: i.approved_action, evidence: await this.inspect(i, m, signal) });
       for (let turn = 0; turn < this.config.limits.requests_per_incident; turn++) {
         phase = "request_admission";
         if (signal.aborted || !this.enabled()) throw new Error("investigation stopped");
         const p = this.config.provider;
-        const body = JSON.stringify(core.request(session, p, m.actions));
+        const body = JSON.stringify(core.request(session, p, m.actions, m.tools ?? []));
         this.reserve(i);
         const headers = new Headers({ "content-type": "application/json" });
         if (p.kind === "anthropic") { headers.set("x-api-key", this.env.PROVIDER_API_KEY); headers.set("anthropic-version", "2023-06-01"); }
@@ -281,7 +349,28 @@ export class Roundhouse extends DurableObject<Env> {
         for (const call of accepted.reply.calls) {
           const current = this.incident(i.id);
           const decision = core.decision(m, call, current.approved_action, !!current.attempted);
-          if (decision === "inspect") results.push({ type: "tool_result", tool_use_id: call.id, content: JSON.stringify(await this.inspect(i, m, signal)) });
+          if (decision === "registered") {
+            const tool = m.tools?.find(t => t.name === call.name);
+            if (!tool) throw new Error("unavailable tool");
+            core.validateTool(tool, call.arguments);
+            if (JSON.stringify(this.scrub(call.arguments)) !== JSON.stringify(call.arguments)) throw new Error("credential-bearing invocation rejected");
+            if (tool.effect === "privileged") {
+              const id = crypto.randomUUID();
+              const digest = await invocationDigest({ id, incident: i.id, config: this.fingerprint, tool, args: call.arguments });
+              this.ctx.storage.transactionSync(() => {
+                if (this.incident(i.id).attempted) throw new Error("action already attempted");
+                this.ctx.storage.sql.exec("INSERT INTO invocations VALUES(?,?,?,?,?,?,'pending',?,NULL)", id, i.id, tool.name, JSON.stringify(call.arguments), digest, this.fingerprint, Date.now() + 3600000);
+                this.ctx.storage.sql.exec("UPDATE incidents SET pending_action=? WHERE id=?", `invocation:${id}`, i.id);
+                this.audit(i.id, "invocation_pending", { id, digest, tool: tool.name, args: call.arguments });
+              });
+              stop = true; break;
+            }
+            try {
+              const value = await this.executeTool(i, m, tool, call.arguments, crypto.randomUUID(), signal, false);
+              results.push({ type: "tool_result", tool_use_id: call.id, content: JSON.stringify(value) });
+            } catch { results.push({ type: "tool_result", tool_use_id: call.id, content: "tool failed; inspect audit and workspace state before retry", is_error: true }); }
+          }
+          else if (decision === "inspect") results.push({ type: "tool_result", tool_use_id: call.id, content: JSON.stringify(await this.inspect(i, m, signal)) });
           else if (decision === "execute" || decision === "approval_required") {
             const action = m.actions.find(a => typeof call.arguments === "object" && call.arguments !== null && "action" in call.arguments && a.name === call.arguments.action);
             if (!action) throw new Error("invalid driver action");

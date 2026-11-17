@@ -18,7 +18,9 @@ bun run --cwd npm test
 bun pm --cwd npm pack
 ```
 
-Install the resulting tarball into a consumer with `bun add /path/to/tschk-roundhouse-0.2.0.tgz`. The package includes precompiled Wasm, declarations, the matching portable Rust source in `rust/`, and dependency notices in `licenses/`. Its runtime has no npm dependencies. Development tools do not ship as runtime dependencies.
+Install the resulting tarball into a consumer with `bun add /path/to/tschk-roundhouse-0.2.0.tgz`. The package includes precompiled Wasm, declarations, the matching portable Rust source in `rust/`, and dependency notices in `licenses/`. The virtual shell interpreter and its JavaScript dependencies are bundled into the Worker. No external npm dependency resolution is needed at runtime.
+
+See the [operations tool reference](../docs/tools.md) for the extensible catalog, virtual Bash, restricted fetch, exact privileged approvals, Linux execution, and rollback boundaries. The original recovery demo remains a test, not a capability ceiling.
 
 ## Use the client
 

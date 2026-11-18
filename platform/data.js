@@ -152,7 +152,9 @@ async function ingest(env, tenant, records, now, site = null) {
 async function analytics(env, tenant, now) {
   const since = now - DAY;
   const counts = await sql(env, `SELECT coalesce(sum(kind = 'pageview'), 0) AS pageviews,
-    coalesce(sum(kind = 'event'), 0) AS events FROM data_records WHERE tenant_id = ? AND at >= ? AND at <= ?`, tenant, since, now).first();
+    coalesce(sum(kind = 'event'), 0) AS events,
+    max(CASE WHEN kind IN ('event','pageview') THEN at END) AS latest_event_at
+    FROM data_records WHERE tenant_id = ? AND at >= ? AND at <= ?`, tenant, since, now).first();
   const [paths, referrers, series] = await Promise.all([
     rows(env, `SELECT path, count(*) AS count FROM data_records WHERE tenant_id = ? AND kind = 'pageview'
       AND at >= ? AND at <= ? GROUP BY path ORDER BY count DESC, path LIMIT 100`, tenant, since, now),

@@ -376,13 +376,14 @@
   }
 
   function renderAnalytics(analytics) {
+    setText("capture-check", analytics.latest_event_at == null ? "No events recorded in the last 24 hours." : `Latest event in this workspace: ${timestamp(analytics.latest_event_at)}.`);
     replaceRegion("analytics-metrics", [analytics.pageviews, analytics.events], () => [
       metric("Pageviews", count(analytics.pageviews), "Explicitly captured pageviews"),
       metric("Events", count(analytics.events), "Explicitly captured events"),
     ]);
     replaceRegion("analytics-series", analytics.series || [], () => {
       const series = analytics.series || [];
-      if (!series.length) return empty("No activity", "Ingest events from your server. No sample traffic.");
+      if (!series.length) return empty("No pageviews in the last 24 hours", "Custom events are counted separately above.");
       const max = Math.max(0, ...series.map((item) => Number(item.count) || 0));
       return series.map((item) => {
         const row = node("div", null, "series-row");

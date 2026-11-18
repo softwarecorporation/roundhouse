@@ -4,6 +4,10 @@ Always-on agentic operations built on [Rotary](https://github.com/tschk/rotary).
 
 Run it as a Cloudflare Worker with SQLite Durable Objects, or on a Linux server with persistent storage and a supervisor. No laptop, interactive agent session, Docker daemon, or desktop connection is required. This is API-first software, not a dashboard or a managed hosting service.
 
+## Try the standalone SaaS demo
+
+[Reportroom](examples/reportroom/README.md) is a small reporting SaaS with a usable web UI, real queued CSV exports, and synthetic shop data. Inject a worker failure, watch Roundhouse investigate, approve its scoped recovery, then inspect the independently verified result and durable incident history. The default deterministic provider needs no paid credentials or Facetime checkout. Optional live-provider mode is separate.
+
 ## Choose a runtime
 
 - [Workers and npm](npm/README.md): `@tschk/roundhouse` contains a JavaScript client and a real Rust/Wasm Workers host. Durable Object alarms run checks without a connected client. Telemetry captures named events, logs, spans, and gauge samples, with bounded queries and aggregates.

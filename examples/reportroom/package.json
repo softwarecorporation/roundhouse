@@ -1,0 +1,14 @@
+{
+  "name": "roundhouse-reportroom-demo",
+  "private": true,
+  "type": "module",
+  "license": "MPL-2.0",
+  "scripts": {
+    "prepare:runtime": "bun install --cwd ../../npm --frozen-lockfile && bun run --cwd ../../npm build",
+    "start": "bun server.js",
+    "test": "bun test app.test.js integration.test.js"
+  },
+  "devDependencies": {
+    "miniflare": "4.20260730.0"
+  }
+}

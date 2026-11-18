@@ -1,0 +1,208 @@
+import { DurableObject } from "cloudflare:workers";
+
+const MAX_JOBS = 25;
+const MAX_BODY = 256;
+const ALARM_DELAY = 1000;
+const FIRST_DAY = Date.UTC(2026, 0, 1);
+const DAY = 86400000;
+const JOB_FIELDS = "id,period,state,created_at,completed_at,sha256,rows,order_count,revenue_cents";
+
+function error(message, status) {
+  return Response.json({ error: message }, { status });
+}
+
+async function jsonBody(request) {
+  if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json") {
+    throw error("application/json required", 415);
+  }
+  const reader = request.body?.getReader();
+  const chunks = [];
+  let size = 0;
+  if (reader) {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_BODY) {
+        await reader.cancel();
+        throw error("body too large", 413);
+      }
+      chunks.push(value);
+    }
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  let body;
+  try { body = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)); }
+  catch { throw error("invalid JSON", 400); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw error("object required", 400);
+  return body;
+}
+
+export class ReportApplication extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    ctx.storage.sql.exec(`
+      CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS claims(key TEXT PRIMARY KEY, fault INTEGER NOT NULL UNIQUE);
+      CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY,day TEXT NOT NULL,revenue_cents INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS jobs(
+        id TEXT PRIMARY KEY,period INTEGER NOT NULL,state TEXT NOT NULL,created_at TEXT NOT NULL,
+        completed_at TEXT,sha256 TEXT,rows INTEGER,order_count INTEGER,revenue_cents INTEGER,csv TEXT
+      );
+    `);
+    ctx.storage.transactionSync(() => {
+      if (this.value("initialized")) return;
+      let id = 1;
+      for (let d = 0; d < 30; d++) {
+        const day = new Date(FIRST_DAY + d * DAY).toISOString().slice(0, 10);
+        for (let j = 0; j < 3 + d % 6; j++) {
+          const cents = 1200 + d * 137 + j * 499 + (d * j % 7) * 83;
+          ctx.storage.sql.exec("INSERT INTO orders VALUES(?,?,?)", id++, day, cents);
+        }
+      }
+      this.put("running", 1);
+      this.put("recovering", 0);
+      this.put("recoveries", 0);
+      this.put("fault", 0);
+      this.put("initialized", 1);
+    });
+  }
+
+  value(key) { return this.ctx.storage.sql.exec("SELECT value FROM settings WHERE key=?", key).toArray()[0]?.value; }
+  put(key, value) { this.ctx.storage.sql.exec("INSERT OR REPLACE INTO settings VALUES(?,?)", key, String(value)); }
+  jobs() { return this.ctx.storage.sql.exec(`SELECT ${JOB_FIELDS} FROM jobs ORDER BY created_at,id`).toArray(); }
+  status() {
+    const jobs = this.jobs();
+    const running = this.value("running") === "1";
+    const recovering = this.value("recovering") === "1";
+    return {
+      healthy: running && !recovering && !jobs.some(job => job.state === "failed"),
+      worker_running: running,
+      recovering,
+      recoveries: Number(this.value("recoveries")),
+      orders: this.ctx.storage.sql.exec("SELECT COUNT(*) AS count,SUM(revenue_cents) AS revenue_cents FROM orders").toArray()[0],
+      jobs,
+    };
+  }
+  queue(period) {
+    const id = crypto.randomUUID();
+    this.ctx.storage.sql.exec("INSERT INTO jobs(id,period,state,created_at) VALUES(?,?,'queued',?)", id, period, new Date().toISOString());
+    return this.ctx.storage.sql.exec(`SELECT ${JOB_FIELDS} FROM jobs WHERE id=?`, id).toArray()[0];
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (!(url.pathname === "/health" && request.method === "GET")) {
+      if (typeof this.env.APPLICATION_TOKEN !== "string" || !this.env.APPLICATION_TOKEN.length) return error("unauthorized", 401);
+      const encode = new TextEncoder();
+      const [actual, expected] = await Promise.all([
+        crypto.subtle.digest("SHA-256", encode.encode(request.headers.get("authorization") ?? "")),
+        crypto.subtle.digest("SHA-256", encode.encode(`Bearer ${this.env.APPLICATION_TOKEN}`)),
+      ]);
+      if (!crypto.subtle.timingSafeEqual(actual, expected)) return error("unauthorized", 401);
+    }
+    if (url.search) return error("query parameters not allowed", 400);
+    const download = /^\/reports\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.csv$/.exec(url.pathname);
+    const method = ["/health", "/status"].includes(url.pathname) || download ? "GET"
+      : ["/reports", "/fault", "/recover", "/reset"].includes(url.pathname) ? "POST" : null;
+    if (!method) return error("not found", 404);
+    if (request.method !== method) return new Response(null, { status: 405, headers: { Allow: method } });
+    if (method === "GET") {
+      if (request.body) return error("body not allowed", 400);
+      if (url.pathname === "/health") {
+        const { healthy } = this.status();
+        return Response.json({ healthy }, { status: healthy ? 200 : 503 });
+      }
+      if (url.pathname === "/status") return Response.json(this.status());
+      const job = this.ctx.storage.sql.exec("SELECT state,csv FROM jobs WHERE id=?", download[1]).toArray()[0];
+      if (!job) return error("report not found", 404);
+      if (job.state !== "completed") return error("report not completed", 409);
+      return new Response(job.csv, { headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="report-${download[1]}.csv"`,
+        "Cache-Control": "no-store",
+      } });
+    }
+    let body;
+    try { body = await jsonBody(request); }
+    catch (response) { if (response instanceof Response) return response; throw response; }
+    const keys = Object.keys(body);
+    if (url.pathname === "/reports") {
+      if (keys.length !== 1 || keys[0] !== "period" || ![7, 30].includes(body.period)) return error("period must be 7 or 30", 400);
+      if (this.jobs().length >= MAX_JOBS) return error("report limit reached; reset demo reports", 409);
+      const job = this.queue(body.period);
+      if (this.value("running") === "1") await this.ctx.storage.setAlarm(Date.now() + ALARM_DELAY);
+      return Response.json(job, { status: 202 });
+    }
+    const recoveryMetadata = url.pathname === "/recover" && keys.length === 1 && keys[0] === "incident_id"
+      && typeof body.incident_id === "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(body.incident_id);
+    if (keys.length && !recoveryMetadata) return error("empty object or recovery incident metadata required", 400);
+    if (url.pathname === "/fault") {
+      if (this.value("running") !== "1" || this.value("recovering") === "1") return error("fault already active", 409);
+      if (this.jobs().length >= MAX_JOBS) return error("report limit reached; reset demo reports", 409);
+      this.ctx.storage.transactionSync(() => {
+        this.put("running", 0);
+        this.put("fault", Number(this.value("fault")) + 1);
+        this.queue(7);
+      });
+      await this.ctx.storage.deleteAlarm();
+      return Response.json(this.status());
+    }
+    if (url.pathname === "/recover") {
+      const key = request.headers.get("idempotency-key");
+      if (!key || !/^[A-Za-z0-9._:-]{1,128}$/.test(key)) return error("valid Idempotency-Key required", 400);
+      const replay = this.ctx.storage.sql.exec("SELECT key FROM claims WHERE key=?", key).toArray().length > 0;
+      if (replay) return Response.json({ accepted: true }, { status: 202 });
+      const fault = Number(this.value("fault"));
+      if (this.value("running") === "1" || this.ctx.storage.sql.exec("SELECT key FROM claims WHERE fault=?", fault).toArray().length) {
+        return error("no unclaimed fault", 409);
+      }
+      this.ctx.storage.transactionSync(() => {
+        this.ctx.storage.sql.exec("INSERT INTO claims VALUES(?,?)", key, fault);
+        this.put("recoveries", Number(this.value("recoveries")) + 1);
+        this.put("running", 1);
+        this.put("recovering", 1);
+      });
+      await this.ctx.storage.setAlarm(Date.now() + ALARM_DELAY);
+      return Response.json({ accepted: true }, { status: 202 });
+    }
+    this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.sql.exec("DELETE FROM jobs");
+      this.put("running", 1);
+      this.put("recovering", 0);
+    });
+    await this.ctx.storage.deleteAlarm();
+    return Response.json(this.status());
+  }
+
+  async alarm() {
+    if (this.value("running") !== "1") return;
+    for (const job of this.ctx.storage.sql.exec("SELECT id,period FROM jobs WHERE state='queued'").toArray()) {
+      const since = new Date(FIRST_DAY + (30 - job.period) * DAY).toISOString().slice(0, 10);
+      const days = this.ctx.storage.sql.exec(`SELECT day,COUNT(*) AS order_count,SUM(revenue_cents) AS revenue_cents
+        FROM orders WHERE day>=? GROUP BY day ORDER BY day`, since).toArray();
+      const csv = "date,order_count,revenue_cents\n" + days.map(day => `${day.day},${day.order_count},${day.revenue_cents}\n`).join("");
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(csv));
+      const sha256 = Array.from(new Uint8Array(digest), x => x.toString(16).padStart(2, "0")).join("");
+      if (this.value("running") !== "1") return;
+      const count = days.reduce((sum, day) => sum + day.order_count, 0);
+      const revenue = days.reduce((sum, day) => sum + day.revenue_cents, 0);
+      this.ctx.storage.sql.exec(`UPDATE jobs SET state='completed',completed_at=?,sha256=?,rows=?,order_count=?,revenue_cents=?,csv=?
+        WHERE id=? AND state='queued'`, new Date().toISOString(), sha256, days.length, count, revenue, csv, job.id);
+    }
+    if (this.value("running") !== "1") return;
+    if (this.ctx.storage.sql.exec("SELECT id FROM jobs WHERE state='queued' LIMIT 1").toArray().length) {
+      await this.ctx.storage.setAlarm(Date.now() + ALARM_DELAY);
+    } else {
+      this.put("recovering", 0);
+    }
+  }
+}
+
+export default {
+  fetch(request, env) {
+    return env.REPORTS.getByName("shop").fetch(request);
+  },
+};

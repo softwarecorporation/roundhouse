@@ -4,7 +4,7 @@
   const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format((value || 0) / 100);
   const stamp = value => new Date(value).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   const node = (tag, text, cls) => { const n = document.createElement(tag); if (text != null) n.textContent = text; if (cls) n.className = cls; return n; };
-  let workspace, state, busy = false, connected = false, detailId = null, timer, refreshPromise, prefDirty = false, reportDirty = false, detailSignature, historySignature;
+  let workspace, state, busy = false, connected = false, detailId = null, timer, refreshPromise, prefDirty = false, reportDirty = false, detailSignature, historySignature, overviewSignature;
   function notify(text, error = false) { const n = $(error ? 'error' : 'message'); n.textContent = text; n.hidden = false; }
   async function api(path, body) {
     const r = await fetch(path, { method: body === undefined ? 'GET' : 'POST', credentials: 'include', cache: 'no-store', signal: AbortSignal.timeout(12000),
@@ -42,14 +42,60 @@
     });
     $('reports').replaceChildren(...rows); $('empty').hidden = rows.length > 0; $('report-count').textContent = `${rows.length} / 25 reports`;
   }
-  function renderOverview() {
-    $('revenue').textContent = money(workspace.overview.revenue_cents); $('orders').textContent = workspace.overview.orders;
-    $('average').textContent = money(workspace.overview.average_order_cents);
-    if (!$('chart').children.length) {
-      const maximum = Math.max(...workspace.daily.map(d => d.revenue_cents));
-      $('chart').replaceChildren(...workspace.daily.map(d => { const b = node('div', null, 'chart-bar'); b.style.height = `${d.revenue_cents / maximum * 100}%`; b.title = `${d.day}: ${money(d.revenue_cents)}, ${d.order_count} orders`; return b; }));
-      $('recent-orders').replaceChildren(...workspace.recent_orders.map(order => { const tr = node('tr'); tr.append(node('td', `#${order.id}`), node('td', order.day), node('td', money(order.revenue_cents), 'numeric')); return tr; }));
+  function renderChart(id) {
+    const chart = $(id), daily = workspace.daily;
+    if (!daily.length) { chart.replaceChildren(node('p', 'No daily sales yet.', 'hint')); return; }
+    const maximum = Math.max(1, ...daily.map(d => d.revenue_cents));
+    const ceiling = Math.ceil(maximum / 10000) * 10000;
+    const plot = node('div', null, 'chart-plot');
+    const axis = node('div', null, 'chart-axis'); axis.setAttribute('aria-hidden', 'true');
+    for (const fraction of [0, .5, 1]) {
+      const tick = node('div', null, 'chart-tick'); tick.style.top = `${(1 - fraction) * 100}%`;
+      tick.append(node('span', money(ceiling * fraction).replace('.00', ''))); axis.append(tick);
     }
+    const readout = node('p', 'Select a day. Arrow keys move through sales.', 'chart-readout');
+    readout.id = `${id}-readout`;
+    plot.setAttribute('role', 'group'); plot.setAttribute('aria-label', 'Daily synthetic revenue');
+    plot.setAttribute('aria-describedby', readout.id);
+    const bars = daily.map((day, index) => {
+      const label = `${day.day}: ${money(day.revenue_cents)}, ${day.order_count} orders`;
+      const button = node('button', null, 'revenue-bar'); button.type = 'button'; button.tabIndex = index === 0 ? 0 : -1;
+      button.setAttribute('aria-label', label); button.title = label;
+      const fill = node('span'); fill.style.height = `${day.revenue_cents / ceiling * 100}%`; button.append(fill);
+      const select = () => { readout.textContent = label; bars.forEach(bar => { bar.tabIndex = bar === button ? 0 : -1; }); };
+      button.addEventListener('focus', select); button.addEventListener('pointerenter', () => { readout.textContent = label; });
+      button.addEventListener('click', select);
+      button.addEventListener('keydown', event => {
+        let next;
+        if (event.key === 'ArrowRight') next = Math.min(index + 1, daily.length - 1);
+        if (event.key === 'ArrowLeft') next = Math.max(index - 1, 0);
+        if (event.key === 'Home') next = 0;
+        if (event.key === 'End') next = daily.length - 1;
+        if (next !== undefined) { event.preventDefault(); bars[next].focus(); }
+      });
+      return button;
+    });
+    plot.append(...bars);
+    const dates = node('div', null, 'chart-dates');
+    const dateLabel = day => new Date(`${day}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    dates.append(node('span', dateLabel(daily[0].day)), node('span', dateLabel(daily[daily.length - 1].day)));
+    chart.replaceChildren(plot, dates, readout);
+    plot.append(axis);
+  }
+  function renderOverview() {
+    const signature = JSON.stringify([workspace.overview, workspace.daily, workspace.recent_orders]);
+    if (signature === overviewSignature) return;
+    overviewSignature = signature;
+    for (const prefix of ['', 'snapshot-']) {
+      $(`${prefix}revenue`).textContent = money(workspace.overview.revenue_cents);
+      $(`${prefix}orders`).textContent = workspace.overview.orders;
+      $(`${prefix}average`).textContent = money(workspace.overview.average_order_cents);
+    }
+    renderChart('chart'); renderChart('snapshot-chart');
+    $('daily-rows').replaceChildren(...workspace.daily.map(day => {
+      const tr = node('tr'); tr.append(node('td', day.day), node('td', day.order_count, 'numeric'), node('td', money(day.revenue_cents), 'numeric')); return tr;
+    }));
+    $('recent-orders').replaceChildren(...workspace.recent_orders.map(order => { const tr = node('tr'); tr.append(node('td', `#${order.id}`), node('td', order.day), node('td', money(order.revenue_cents), 'numeric')); return tr; }));
   }
   function renderOperations() {
     $('worker').textContent = state.app.worker_running ? 'Running' : 'Paused';
@@ -70,6 +116,7 @@
   }
   function render() {
     const prefs = workspace.preferences;
+    $('loading').hidden = true;
     $('welcome').hidden = true; $('onboarding').hidden = prefs.onboarded; $('workspace').hidden = !prefs.onboarded;
     $('workspace-name').textContent = prefs.name;
     if (!prefDirty) { $('pref-name').value = prefs.name; $('pref-period').value = prefs.default_period; $('pref-group').value = prefs.default_group_by; }
@@ -85,6 +132,7 @@
         $('connection').textContent = 'Connected'; if ($('error').dataset.poll === '1') { $('error').hidden = true; delete $('error').dataset.poll; }
         render(); if (detailId) await showDetail(detailId, true);
       } catch (error) {
+        $('loading').hidden = true;
         connected = false; $('connection').textContent = 'Offline';
         if (error.status === 401) { $('welcome').hidden = false; $('workspace').hidden = true; $('onboarding').hidden = true; }
         else { notify(`Refresh failed. ${error.message}`, true); $('error').dataset.poll = '1'; }
@@ -105,7 +153,7 @@
     try {
       const report = await api(`/api/reports/${id}`); if (detailId !== id) return;
       const signature = JSON.stringify(report); if (signature === detailSignature) return; detailSignature = signature;
-      $('detail-title').textContent = report.title; $('detail-meta').textContent = `${report.period} days / ${report.group_by} / ${report.state === 'completed' ? 'Ready' : report.state}`;
+      $('detail-title').textContent = report.title; $('detail-meta').textContent = `${report.period} days / ${report.group_by} / ${report.state === 'completed' ? 'Ready' : report.state === 'queued' ? 'Generating' : 'Failed'}`;
       const content = $('detail-content'); content.replaceChildren();
       if (report.state !== 'completed') { content.append(node('p', report.state === 'queued' ? 'Generating. This view updates automatically.' : 'Generation failed. Check worker status in Roundhouse.')); }
       else {
@@ -134,11 +182,13 @@
   $('preferences-form').addEventListener('input', () => { prefDirty = true; });
   $('preferences-form').addEventListener('submit', async event => { event.preventDefault(); const result = await mutate('/api/workspace', { name: $('pref-name').value.trim(), default_period: Number($('pref-period').value), default_group_by: $('pref-group').value, onboarded: true }); if (result) { prefDirty = false; render(); } });
   $('close-detail').addEventListener('click', () => { detailId = null; $('report-detail').hidden = true; });
+  $('new-report').addEventListener('click', () => { $('report-title').focus(); });
+  $('name-first-report').addEventListener('click', () => { $('report-title').focus(); });
   $('refresh').addEventListener('click', () => { void refresh(); });
   $('monitor-start').addEventListener('click', () => { void mutate('/api/monitor/start', {}, 'Monitoring on.'); });
   $('fault').addEventListener('click', () => { if (confirm('Pause this demo worker? Reports wait until recovery.')) void mutate('/api/fault', {}, 'Worker paused.'); });
   $('reset').addEventListener('click', () => { if (confirm('Clear this workspace’s reports? Preferences and incident history stay.')) void mutate('/api/reset', {}, 'Reports cleared.'); });
-  addEventListener('hashchange', navigate);
+  addEventListener('hashchange', () => { navigate(); window.scrollTo(0, 0); });
   async function loop() { if (!document.hidden && !busy) await refresh(); timer = setTimeout(loop, 2000); }
   document.addEventListener('visibilitychange', () => { clearTimeout(timer); if (!document.hidden) void loop(); });
   navigate(); void loop();

@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101112">
-  <meta name="description" content="Monitor, investigate, recover, verify. Roundhouse keeps configured systems running within explicit boundaries.">
-  <title>Roundhouse</title>
+  <meta name="description" content="AI on call for your apps. Observability, analytics, logs, incidents and authorized automatic recovery in one platform. Managed or free to self-manage.">
+  <title>Roundhouse | AI on call. Observability and recovery.</title>
   <link rel="icon" href="/roundhouse.svg" type="image/svg+xml">
   <link rel="preload" href="/archivo.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="/platform.css">
@@ -14,50 +14,67 @@
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header wrap">
     <a class="brand" href="/" aria-label="Roundhouse home"><img src="/roundhouse.svg" width="48" height="48" alt="">roundhouse</a>
-    <nav aria-label="Main"><a href="/docs/setup">Docs</a><a href="/console">Console</a></nav>
+    <nav aria-label="Main"><a href="#platform">Platform</a><a href="#options">Get started</a><a href="/console">Sign in</a></nav>
   </header>
-  <main id="main" class="wrap">
-    <section class="hero" aria-labelledby="hero-title">
-      <h1 id="hero-title">Your systems.<br>Kept running.</h1>
-      <div class="hero-entry"><p>Connect your apps. Investigate failures.<br>Recover automatically, within your rules.</p><div class="action-row"><a class="button primary" href="/console">Connect an app</a><a class="text-link" href="/console?guest=1">Try the demo</a></div><p class="fine-print">Your health checks. Your endpoints. Optional approval.</p></div>
-    </section>
-    <section class="mechanism" aria-labelledby="mechanism-title">
-      <div class="specimen-heading"><h2 id="mechanism-title">Signals in. Verified action out.</h2><span>Illustrative routing</span></div>
-      <div class="routing-scroll">
-        <svg class="routing-diagram routing-wide" viewBox="0 0 1160 320" role="img" aria-labelledby="routing-title routing-description">
-          <title id="routing-title">From your apps to verified recovery</title>
-          <desc id="routing-description">Health checks, events and diagnostic telemetry route into an investigating agent. Only configured action endpoints can run, automatically or with approval. A new health check verifies the result.</desc>
-          <g class="routing-lines"><path d="M180 70H250L360 150M180 150H360M180 230H250L360 150M360 150H420M560 150H720M780 150H870M1000 150H1050V270H490V205"/><path d="M180 78H247L355 157M180 158H355M180 238H253L365 157M365 158H420M560 158H720M780 158H870"/></g>
-          <g class="routing-inputs"><rect x="0" y="45" width="180" height="50"/><rect x="0" y="125" width="180" height="50"/><rect x="0" y="205" width="180" height="50"/></g>
-          <g class="routing-labels"><text x="20" y="76">Your apps</text><text x="20" y="156">Events</text><text x="20" y="236">Telemetry</text></g>
-          <g class="routing-machine"><path d="M420 115V95Q490 35 560 95V205H420Z"/><path d="M434 116Q446 96 458 116V139M478 116Q490 96 502 116V139M522 116Q534 96 546 116V139"/><path d="M455 183H525M455 189H525"/></g>
-          <text class="routing-agent" x="490" y="167" text-anchor="middle">Agent</text>
-          <g class="routing-switch"><circle cx="750" cy="154" r="30"/><path d="M726 150H774M726 158H774M750 124V105M750 184V203"/></g>
-          <g class="routing-labels"><text x="750" y="64" text-anchor="middle">Scoped authority</text><text x="750" y="232" text-anchor="middle">Automatic or approved</text></g>
-          <rect class="routing-endpoint" x="870" y="125" width="130" height="58"/>
-          <text class="routing-output" x="935" y="159" text-anchor="middle">Your action</text>
-          <g class="routing-verify"><path d="M1070 255L1080 265L1100 241"/><text x="1060" y="300" text-anchor="middle">Verify health</text></g>
-          <text class="routing-caption" x="490" y="300" text-anchor="middle">Fresh evidence, not assumed success</text>
-        </svg>
-        <svg class="routing-diagram routing-narrow" viewBox="0 0 350 470" role="img" aria-labelledby="routing-mobile-title routing-mobile-description">
-          <title id="routing-mobile-title">Signals to verified recovery</title>
-          <desc id="routing-mobile-description">Apps, events and telemetry feed an investigating agent. Scoped authority limits automatic or approved endpoint actions. A fresh health check verifies the outcome.</desc>
-          <g class="routing-inputs"><rect x="1" y="1" width="100" height="42"/><rect x="125" y="1" width="100" height="42"/><rect x="249" y="1" width="100" height="42"/></g>
-          <g class="routing-labels" text-anchor="middle"><text x="51" y="28">Apps</text><text x="175" y="28">Events</text><text x="299" y="28">Telemetry</text></g>
-          <g class="routing-lines"><path d="M47 43V75L171 110V125M55 43V70L179 105V125M171 43V125M179 43V125M295 43V70L171 105M303 43V75L179 110M171 225V250M179 225V250M171 290V315M179 290V315M245 337H310V408H175V359"/></g>
-          <g class="routing-machine"><path d="M115 145V130Q175 80 235 130V225H115Z"/><path d="M128 153Q139 134 150 153V174M164 153Q175 134 186 153V174M200 153Q211 134 222 153V174"/></g>
-          <text class="routing-agent" x="175" y="202" text-anchor="middle">Agent</text>
-          <g class="routing-switch"><circle cx="175" cy="270" r="20"/><path d="M171 250V290M179 250V290"/></g>
-          <g class="routing-caption"><text x="0" y="267">Scoped authority</text><text x="230" y="267">Your rules</text></g>
-          <rect class="routing-endpoint" x="105" y="315" width="140" height="44"/>
-          <text class="routing-output" x="175" y="342" text-anchor="middle">Your action</text>
-          <g class="routing-verify"><path d="M294 388L302 396L318 376"/><text x="175" y="439" text-anchor="middle">Verify health</text></g>
-          <text class="routing-caption" x="175" y="465" text-anchor="middle">Fresh evidence, not assumed success</text>
-        </svg>
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-entry">
+        <h1 id="hero-title">Put AI on call.<br><span>Get your time back.</span></h1>
+        <p>Observability and recoverability, together. AI watches your apps, investigates failures, runs the fixes you authorize, and verifies recovery.</p>
+        <div class="action-row"><a class="button primary" href="/console?guest=1#systems">Try the recovery demo</a><a class="text-link" href="#options">Connect your app</a></div>
+        <p class="fine-print">Always on. Your rules. Automatic actions, optional approval.</p>
       </div>
-      <p class="mechanism-note">Connect public HTTPS endpoints. Explore Reportroom as a working example.</p>
+      <figure class="agent-map">
+        <svg viewBox="0 0 480 400" role="img" aria-labelledby="agent-title agent-description">
+          <title id="agent-title">An AI recovery loop, not another alert inbox</title>
+          <desc id="agent-description">App health checks and events feed the AI. It investigates configured diagnostics, performs an authorized action, then checks health independently. The loop continues without an open laptop.</desc>
+          <g class="map-track"><path d="M82 102H199M281 102H400V178M400 222V302H281M199 302H82V222M82 178V146"/><path d="M82 110H199M281 110H392V178M392 222V294H281M199 294H90V222M90 178V146"/></g>
+          <g class="map-station"><rect x="8" y="72" width="146" height="70"/><rect x="199" y="72" width="82" height="70"/><rect x="324" y="178" width="146" height="44"/><rect x="199" y="272" width="82" height="60"/><rect x="8" y="178" width="146" height="44"/></g>
+          <g class="map-copy" text-anchor="middle"><text x="81" y="101">App health</text><text x="81" y="122" class="map-small">Checks + events</text><text x="240" y="113" class="map-ai">AI</text><text x="397" y="205">Investigate</text><text x="240" y="298">Act</text><text x="240" y="317" class="map-small">Your scope</text><text x="81" y="205">Verify health</text></g>
+          <g class="map-direction"><path d="M173 102L180 106L173 110M392 152L396 159L400 152M307 294L300 298L307 302M82 161L86 154L90 161"/></g>
+          <image class="map-mark" href="/roundhouse.svg" x="210" y="176" width="60" height="60"/>
+          <text class="map-center" x="240" y="252" text-anchor="middle">Roundhouse</text>
+          <text class="map-caption" x="240" y="375" text-anchor="middle">A fresh check closes the loop.</text>
+        </svg>
+        <figcaption>Illustrative recovery loop</figcaption>
+      </figure>
+      <nav class="platform-rail" aria-label="Platform capabilities"><a href="/console#analytics">Analytics &amp; events</a><a href="/console#logs">Logs</a><a href="/console#incidents">Incidents &amp; recovery</a><a href="/console#status">Status pages</a><a href="/console#apps">Automations</a><a href="/console#settings">MCP</a></nav>
+    </section>
+
+    <section id="platform" class="platform-section wrap" aria-labelledby="platform-title">
+      <div class="section-intro"><h2 id="platform-title">See the whole app.<br>Do something about it.</h2><p>One workspace for signals, incidents and action. Lightweight observability today. A broader replacement for a fragmented stack over time.</p></div>
+      <div class="capability-list">
+        <a href="/console#apps"><h3>Monitoring</h3><p>Scheduled HTTPS checks and app-triggered events.</p><span>Available</span></a>
+        <a href="/console#analytics"><h3>Analytics &amp; events</h3><p>Pageviews and custom events, via tracker or API.</p><span>Available</span></a>
+        <a href="/console#logs"><h3>Logs</h3><p>Ingest structured logs. Follow correlation IDs.</p><span>Available</span></a>
+        <a href="/console#incidents"><h3>Incidents &amp; recovery</h3><p>AI investigation, action history, fresh health checks.</p><span>Available</span></a>
+        <a href="/console#status"><h3>Status pages</h3><p>Publish customer-facing updates you control.</p><span>Available</span></a>
+        <a href="/console#apps"><h3>Automations</h3><p>Checks or events trigger your scoped recovery actions.</p><span>Available</span></a>
+        <a href="/console#settings"><h3>MCP access</h3><p>Let your agents read evidence and control monitoring.</p><span>Available</span></a>
+      </div>
+    </section>
+
+    <section class="proof-section" aria-labelledby="proof-title">
+      <div class="wrap proof-layout">
+        <div><h2 id="proof-title">Not just an alert.<br>A verified recovery.</h2><p>In Reportroom, pause a real reporting worker. Follow the investigation, authorized restart and independent health check.</p><a class="button primary" href="/console?guest=1#systems">See recovery in action</a><p class="fine-print">Isolated demo. Synthetic data. Deterministic fixture agent, not a paid model.</p></div>
+        <figure class="recovery-record"><figcaption>Recorded Reportroom demo run</figcaption><ol><li><span>Detected</span><strong>Health check returned 503</strong></li><li><span>Investigated</span><strong>Export worker paused</strong></li><li><span>Acted</span><strong>Authorized resume executed once</strong></li><li><span>Verified</span><strong>Fresh health check returned 200</strong></li></ol><a href="https://reportroom.roundhouse.tsc.hk">Open the working reporting app</a></figure>
+      </div>
+    </section>
+
+    <section class="vision-section wrap" aria-labelledby="vision-title">
+      <div class="section-intro"><h2 id="vision-title">Fewer tools.<br>Less firefighting.</h2><div><p>The ambition: replace the stack you piece together from Sentry, Better Stack, PostHog, Foglamp and more. Not just observe. Recover.</p><p>Start alongside your existing tools: send explicit events and logs, connect HTTPS diagnostics and actions, or use our scoped MCP server. No drop-in adapters implied.</p></div></div>
+      <div class="roadmap-line"><h3>Next, not shipped</h3><p>General error tracking. Distributed tracing. Session replay and funnels. Priced AI costs and evals. Alert delivery. Upstream MCP connectors.</p><a class="text-link" href="https://github.com/tschk/roundhouse/blob/main/docs/observability-comparison.md">Compare capabilities and sources</a></div>
+      <p class="fine-print">“Never be on call again” is the direction, not a reliability guarantee. Today's recovery is limited to the endpoints, permissions and budgets you configure.</p>
+    </section>
+
+    <section id="options" class="options-section wrap" aria-labelledby="options-title">
+      <h2 id="options-title">Your apps. Your way to run it.</h2>
+      <div class="run-options">
+        <article><h3>Managed</h3><p class="option-benefit">No server. No open laptop.</p><p>Hosted on Cloudflare. Connect your apps in the console.</p><a class="button primary" href="/console">Set up your workspace</a><p class="fine-print">Invitation access. Provider and app secrets are operator-provisioned. No self-service billing yet.</p></article>
+        <article><h3>Free to self-manage</h3><p class="option-benefit">Your infrastructure. Your model.</p><p>Open-source software, with no Roundhouse license fee.</p><a class="button" href="/docs/setup">Read the setup guide</a><p class="fine-print">Hosting and model usage are separate costs. MPL-2.0.</p></article>
+      </div>
     </section>
   </main>
-  <footer class="site-footer wrap"><span>Roundhouse by Software Corp</span><nav aria-label="Footer"><a href="/docs/setup">Self-host</a><a href="https://github.com/tschk/roundhouse">Source</a><a href="https://reportroom.roundhouse.tsc.hk">Reportroom</a></nav></footer>
+  <footer class="site-footer wrap"><span>Roundhouse by Software Corp</span><nav aria-label="Footer"><a href="/docs/setup">Docs</a><a href="https://github.com/tschk/roundhouse">Source</a><a href="https://reportroom.roundhouse.tsc.hk">Reportroom</a></nav></footer>
 </body>
 </html>

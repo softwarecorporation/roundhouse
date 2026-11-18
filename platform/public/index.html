@@ -28,7 +28,7 @@
       </nav>
     </header>
     <main id="main">
-      <section class="shift">
+      <section class="tour" aria-label="Explore the roundhouse">
         <div class="shift-copy">
           <h1>On call while<br />you sleep.</h1>
           <p>
@@ -38,21 +38,17 @@
           <a class="button primary" href="/console">Connect an app</a>
           <a class="trial" href="/console?guest=1#systems">Try the drill</a>
         </div>
-        <figure class="engine-house">
+        <div class="scene-map">
           <img
             src="/roundhouse-night.webp"
             width="1536"
             height="1024"
             fetchpriority="high"
             alt="Cutaway of a working roundhouse at night. A signal watches the approach. The turntable routes a locomotive to lit repair bays beside the dispatch office."
-          /><a class="signal" href="#signals">Approach signal</a
-          ><a class="workshop" href="#workshop">Repair bay</a
-          ><a class="dispatch" href="#dispatch">Dispatch office</a>
-        </figure>
-      </section>
-      <section class="yard" aria-label="How the roundhouse works">
-        <article id="signals">
-          <h2>At the signal</h2>
+          /><nav class="scene-pins" aria-label="Explore a location"><a id="signal-pin" href="#signals">Approach signal</a><a id="repair-pin" href="#workshop">Repair bay</a><a id="office-pin" href="#dispatch">Dispatch office</a></nav>
+        </div>
+        <article id="signals" class="scene-detail" tabindex="-1">
+          <a class="scene-back" href="#signal-pin">← Whole roundhouse</a><h2>Approach signal</h2>
           <p>
             Health checks watch each app. A failed check or an incoming event
             starts an investigation. Read
@@ -60,17 +56,18 @@
             <a href="/console#logs">structured logs</a> in the workspace.
           </p>
         </article>
-        <article id="workshop">
-          <h2>In the repair bay</h2>
+        <article id="workshop" class="scene-detail" tabindex="-1">
+          <a class="scene-back" href="#repair-pin">← Whole roundhouse</a><h2>Repair bay</h2>
           <p>
             Set the endpoints and actions once. AI inspects the fault, runs a
             configured action and verifies the result independently.
             <a href="/console#apps">New automations</a> run without a click
             unless you turn on approval.
           </p>
+          <a class="trial" href="/console?guest=1#systems">Run a recovery drill</a>
         </article>
-        <article id="dispatch">
-          <h2>At the dispatch desk</h2>
+        <article id="dispatch" class="scene-detail" tabindex="-1">
+          <a class="scene-back" href="#office-pin">← Whole roundhouse</a><h2>Dispatch office</h2>
           <p>
             Read the <a href="/console#incidents">incident record</a> in the
             morning. Publish a <a href="/console#status">status update</a>, or

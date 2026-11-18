@@ -4,7 +4,7 @@ Roundhouse by Software Corp.
 
 <img src="platform/public/roundhouse.svg" width="72" height="72" alt="Drawn railway roundhouse">
 
-Always-on agentic operations built on [Rotary](https://github.com/tschk/rotary). Roundhouse watches configured HTTP health endpoints, investigates failures with your model, and executes configured tools within explicit authority. Only independent health checks can resolve an incident.
+Always-on agentic operations built on [Rotary](https://github.com/softwarecorporation/rotary). Roundhouse watches configured HTTP health endpoints, investigates failures with your model, and executes configured tools within explicit authority. Only independent health checks can resolve an incident.
 
 Run it as a Cloudflare Worker with SQLite Durable Objects, or on a Linux server with persistent storage and a supervisor. No laptop, interactive agent session, Docker daemon, or desktop connection is required.
 
@@ -26,7 +26,7 @@ The [managed platform](platform/README.md) adds multi-app onboarding, configurab
 
 These are source packages, not published npm or crates.io releases. Follow the [setup and package-consumer guide](docs/setup.md) to build, install, and verify an archive without registry publication. The native and Workers hosts have deliberately different provider configuration formats, tools, and telemetry support.
 
-Workers runs Rotary's genuine `rx4::lite::Agent`, built with `default-features = false, features = ["lite"]`. Rotary owns the resumable provider conversation and shared permission/redaction code; Roundhouse supplies monitoring policy, network I/O, persistence, and exact recovery authority. Native capabilities remain in `rx4::Agent`; they are not available inside Workers. See [source provenance](crates/roundhouse-core/UPSTREAM.md). The direct Wasm bridge follows the inspected [eqts](https://github.com/tschk/eqts) example; eqts supplies neither hosting nor a native runtime inside Workers.
+Workers runs Rotary's genuine `rx4::lite::Agent`, built with `default-features = false, features = ["lite"]`. Rotary owns the resumable provider conversation and shared permission/redaction code; Roundhouse supplies monitoring policy, network I/O, persistence, and exact recovery authority. Native capabilities remain in `rx4::Agent`; they are not available inside Workers. See [source provenance](crates/roundhouse-core/UPSTREAM.md). The direct Wasm bridge follows the inspected [eqts](https://github.com/softwarecorporation/eqts) example; eqts supplies neither hosting nor a native runtime inside Workers.
 
 ## Keep existing telemetry
 

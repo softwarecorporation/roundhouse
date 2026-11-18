@@ -6,7 +6,7 @@ The native Linux server embeds Rotary's native agent. Workers embeds the actual 
 
 ## Build and pack
 
-Building requires Bun 1.4.4, Rust 1.100 with its documentation component, the `wasm32-unknown-unknown` target, and `wasm-bindgen-cli` 0.2.130. Full tests additionally require Linux, Python 3, bubblewrap, OpenSSH server, and working unprivileged user namespaces. See the [setup guide](https://github.com/tschk/roundhouse/blob/main/docs/setup.md) for prerequisites and secure hosting.
+Building requires Bun 1.4.4, Rust 1.100 with its documentation component, the `wasm32-unknown-unknown` target, and `wasm-bindgen-cli` 0.2.130. Full tests additionally require Linux, Python 3, bubblewrap, OpenSSH server, and working unprivileged user namespaces. See the [setup guide](https://github.com/softwarecorporation/roundhouse/blob/main/docs/setup.md) for prerequisites and secure hosting.
 
 From the repository root:
 
@@ -25,7 +25,7 @@ Install the resulting tarball into a consumer with `bun add /path/to/tschk-round
 
 `test:package` installs that archive into a fresh directory, checks imports and declarations through the installed package exports, and runs the Worker suites against its installed JS and Wasm. It does not publish or deploy anything. An optional first argument selects another tarball. Successful runs remove their disposable consumer directory.
 
-See the [operations tool reference](https://github.com/tschk/roundhouse/blob/main/docs/tools.md) for the extensible catalog, virtual Bash, restricted fetch, exact privileged approvals, Linux execution, and rollback boundaries. The original recovery demo remains a test, not a capability ceiling.
+See the [operations tool reference](https://github.com/softwarecorporation/roundhouse/blob/main/docs/tools.md) for the extensible catalog, virtual Bash, restricted fetch, exact privileged approvals, Linux execution, and rollback boundaries. The original recovery demo remains a test, not a capability ceiling.
 
 ## Use the client
 
@@ -65,7 +65,7 @@ Bundle this entry as an ES module and retain the external `wasm/roundhouse_core_
 - Secret bindings `PROVIDER_API_KEY`, `OPERATOR_TOKEN`, and distinct `EVENT_TOKEN`.
 - Optional secret `APPLICATION_TOKEN`, attached only to configured diagnostic and recovery endpoints, never provider telemetry reads.
 - Optional secret `EXECUTOR_TOKEN`, attached only to the configured `remote_exec` endpoint. Keep its separate recovery credential off the Worker.
-- Optional `CONNECTIONS_JSON` and dedicated provider credentials from the [connection guide](https://github.com/tschk/roundhouse/blob/main/docs/integrations.md).
+- Optional `CONNECTIONS_JSON` and dedicated provider credentials from the [connection guide](https://github.com/softwarecorporation/roundhouse/blob/main/docs/integrations.md).
 
 Enable Workers logs and traces in your deployment settings. Do not log bindings or request Authorization headers. A deployment is disabled until an operator calls `POST /v1/start` with bearer authentication. `POST /v1/stop` disables future work and deletes its alarm. An in-flight provider call can finish, but a stop before an action claim prevents the action.
 
@@ -108,6 +108,6 @@ Only fresh successful probes resolve incidents. An accepted recovery POST or a p
 
 Alarms wake at roughly five-second intervals while enabled; monitor intervals are lower bounds, not timing SLAs. Probes and investigation are serial in one controller, so a long investigation delays other checks. There is no multi-region quorum, missed-check SLA calculation, automatic investigation retry, unrestricted network tool, or high-availability scheduler. Virtual Bash is an interpreter, not a native shell. Real Bash requires the separate Linux executor and configured automatic authority or exact privileged approval.
 
-Local telemetry is capped at 100,000 records and 30 days, with exact-match queries and bounded aggregates. Probe history retains 10,000 observations. Incident history and action/budget records grow independently and require operator storage planning. There is no PostHog/Better Stack parity, session replay, OTLP receiver, counter/histogram support, or percentile inference. See the [coverage reference](https://github.com/tschk/roundhouse/blob/main/docs/observability.md).
+Local telemetry is capped at 100,000 records and 30 days, with exact-match queries and bounded aggregates. Probe history retains 10,000 observations. Incident history and action/budget records grow independently and require operator storage planning. There is no PostHog/Better Stack parity, session replay, OTLP receiver, counter/histogram support, or percentile inference. See the [coverage reference](https://github.com/softwarecorporation/roundhouse/blob/main/docs/observability.md).
 
 Local tests run actual workerd, SQLite Durable Objects, and compiled Wasm, with fixture outbound provider APIs. The latest available Miniflare package supports compatibility date `2026-08-06`; cloud smoke tests use `2026-11-15`. External provider fixtures are not live account verification.

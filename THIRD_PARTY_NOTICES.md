@@ -4,7 +4,7 @@ Roundhouse is MPL-2.0 software. Both hosts depend on Rotary (`rx4`), also MPL-2.
 
 The portable crate depends on Rotary's `lite` feature. Its agent, permission evaluator and redactor come from that dependency, not Roundhouse copies. The matching MPL-2.0 text is included in the root, Rust source, and npm package. [UPSTREAM.md](crates/roundhouse-core/UPSTREAM.md) identifies the pinned source and portable-runtime boundary. The npm archive includes the matching Rotary source in `rust/rotary/`; covered files remain available under MPL-2.0.
 
-The bridge design follows an inspected direct wasm-bindgen example in `tschk/eqts`, revision `db4793b6b56963aeb8885e69ec37071473cd079c` (ISC). No eqts source is copied, and eqts is not a runtime dependency.
+The bridge design follows an inspected direct wasm-bindgen example in `softwarecorporation/eqts`, revision `db4793b6b56963aeb8885e69ec37071473cd079c` (ISC). No eqts source is copied, and eqts is not a runtime dependency.
 
 The npm package bundles the portable crate, wasm-bindgen glue, and a precompiled Wasm module. It also includes the exact portable source in `rust/` and actual dependency license files in `licenses/`. Its Rust transitive dependencies retain their own licenses. `Cargo.lock` files and `npm/bun.lock` pin the inspected package graph. The Worker bundles `just-bash` 3.6.1 (Apache-2.0) and the JavaScript dependencies reached by that browser entry point. The build derives redistributed JavaScript notices from esbuild's actual input graph and includes their license files under `licenses/js/`. Other development tools are not redistributed as runtime code.
 

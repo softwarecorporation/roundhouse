@@ -1,6 +1,6 @@
 # Rotary lite dependency
 
-Both Roundhouse hosts depend on tschk/rotary under MPL-2.0. Their Cargo manifests
+Both Roundhouse hosts depend on softwarecorporation/rotary under MPL-2.0. Their Cargo manifests
 pin published `rx4 = "=0.8.0"`; lockfiles record its registry checksum. That release
 comes from source commit `c0a6696004ea1fb21dbefbb80908b684c1d770a6` and includes the
 SQLite and rustix security updates. The Workers bridge enables only `lite` and

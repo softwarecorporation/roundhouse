@@ -6,7 +6,7 @@ Start in a disposable Linux environment. The commands below build source and run
 
 - Use **Workers** for Durable Object alarms, telemetry, and the extensible tool catalog. Its shell is a JavaScript interpreter with private versioned files. It cannot run native binaries or SSH.
 - Add the **Linux executor** for real isolated Bash and optional configured SSH. It needs an always-on server with persistent storage and a separately secured transport. Workers calls it only after exact privileged approval.
-- Use the **native Rust server** for the original health, diagnostic, and named recovery endpoint contract. It does not implement the Workers tool catalog or telemetry API. Follow the [native deployment guide](https://github.com/tschk/roundhouse/blob/main/deploy/README.md).
+- Use the **native Rust server** for the original health, diagnostic, and named recovery endpoint contract. It does not implement the Workers tool catalog or telemetry API. Follow the [native deployment guide](https://github.com/softwarecorporation/roundhouse/blob/main/deploy/README.md).
 - Embed **roundhouse-core** only when you supply scheduling, persistence, network I/O, and authority yourself. It is not a monitoring daemon.
 
 Neither deployed host depends on a laptop connection. Local Miniflare tests stop when their process exits and are not an always-on deployment.
@@ -53,7 +53,7 @@ The first command must exit successfully. The SSH fixture needs passwordless loc
 ## Build from committed source and consume the archive
 
 ```sh
-git clone https://github.com/tschk/roundhouse.git
+git clone https://github.com/softwarecorporation/roundhouse.git
 cd roundhouse
 git rev-parse HEAD
 bun install --cwd npm --frozen-lockfile
@@ -78,7 +78,7 @@ bun add /absolute/path/to/tschk-roundhouse-0.2.0.tgz
 
 The archive contains compiled JS, declarations, Wasm, matching MPL-covered portable Rust source, and dependency notices. Installing or using it does not require Rust. It does not contain the Python executor, a deployed controller, credentials, or a hosted application. The `0.2.0` manifest version is not a registry release or a unique source identifier. Retain the source commit and archive checksum with a release.
 
-Import `RoundhouseClient` from `@tschk/roundhouse` in server-side JS. Import `core` from `@tschk/roundhouse/node` in Node or Bun. The `@tschk/roundhouse/workers` export belongs in workerd, not a Node process. See the [package API and configuration](https://github.com/tschk/roundhouse/blob/main/npm/README.md).
+Import `RoundhouseClient` from `@tschk/roundhouse` in server-side JS. Import `core` from `@tschk/roundhouse/node` in Node or Bun. The `@tschk/roundhouse/workers` export belongs in workerd, not a Node process. See the [package API and configuration](https://github.com/softwarecorporation/roundhouse/blob/main/npm/README.md).
 
 ## Configure a Workers deployment
 
@@ -98,13 +98,13 @@ The entry module is:
 export { default, Roundhouse } from "./dist/workers.js";
 ```
 
-Upload the Wasm file as `application/wasm` and both JS files as ES modules. Do not runtime-fetch Wasm, convert it into a JS buffer, or move it without preserving the relative import. Configure compatibility date `2026-11-15`, a SQLite Durable Object migration for class `Roundhouse`, and its binding named `ROUNDHOUSE`. The configuration binding `ROUNDHOUSE_CONFIG` is a JSON string matching the [package example](https://github.com/tschk/roundhouse/blob/main/npm/README.md#deploy-the-workers-host). It must not contain secret values. Choose supported model identifiers with tool calling enabled.
+Upload the Wasm file as `application/wasm` and both JS files as ES modules. Do not runtime-fetch Wasm, convert it into a JS buffer, or move it without preserving the relative import. Configure compatibility date `2026-11-15`, a SQLite Durable Object migration for class `Roundhouse`, and its binding named `ROUNDHOUSE`. The configuration binding `ROUNDHOUSE_CONFIG` is a JSON string matching the [package example](https://github.com/softwarecorporation/roundhouse/blob/main/npm/README.md#deploy-the-workers-host). It must not contain secret values. Choose supported model identifiers with tool calling enabled.
 
-Required secret binding names are `PROVIDER_API_KEY`, `OPERATOR_TOKEN`, and a distinct `EVENT_TOKEN`. Optional names are `APPLICATION_TOKEN` for fixed diagnostic/recovery endpoints and `EXECUTOR_TOKEN` for `remote_exec`. Provider integrations use their own [connection secret names](https://github.com/tschk/roundhouse/blob/main/docs/integrations.md). Configure secrets through the deployment platform's secret manager. Do not put them in source, command arguments, reports, URLs, tool descriptions, or virtual files. Never give a Worker the executor's recovery token or SSH private key.
+Required secret binding names are `PROVIDER_API_KEY`, `OPERATOR_TOKEN`, and a distinct `EVENT_TOKEN`. Optional names are `APPLICATION_TOKEN` for fixed diagnostic/recovery endpoints and `EXECUTOR_TOKEN` for `remote_exec`. Provider integrations use their own [connection secret names](https://github.com/softwarecorporation/roundhouse/blob/main/docs/integrations.md). Configure secrets through the deployment platform's secret manager. Do not put them in source, command arguments, reports, URLs, tool descriptions, or virtual files. Never give a Worker the executor's recovery token or SSH private key.
 
 Use separate deployments and provider keys for distinct authority scopes. Expose the API only through TLS and intended network access. Review the configured health, diagnostics, action endpoints, and exact web-fetch destinations before injecting credentials. Do not send customer diagnostics to a model unless approved for that provider.
 
-For an already authorized **disposable Cloudflare test account**, the existing [test deployment helper](https://github.com/tschk/roundhouse/blob/main/npm/README.md#exercise-a-disposable-deployment) uploads this module layout and records unique test deployment IDs. It requires `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID_UNDIVISIBLE`, and optionally `ANTHROPIC_API_KEY` for real-model mode. It creates external resources and is not part of the local setup command sequence. Do not adapt it to an existing production Worker by changing its name guards.
+For an already authorized **disposable Cloudflare test account**, the existing [test deployment helper](https://github.com/softwarecorporation/roundhouse/blob/main/npm/README.md#exercise-a-disposable-deployment) uploads this module layout and records unique test deployment IDs. It requires `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID_UNDIVISIBLE`, and optionally `ANTHROPIC_API_KEY` for real-model mode. It creates external resources and is not part of the local setup command sequence. Do not adapt it to an existing production Worker by changing its name guards.
 
 ## Start, approve, and verify monitoring
 
@@ -123,7 +123,7 @@ Set `auto_approve: true` on an authorized action or privileged tool to execute a
 
 ## Add real commands and independent recovery
 
-Follow the [executor installation and recovery guide](https://github.com/tschk/roundhouse/blob/main/executor/README.md#install-on-an-always-on-linux-host) and reviewed templates under `deploy/executor/`. They cover persistent state, dedicated service identity, separate supervised listeners, cgroup limits, TLS proxying, and a local rehearsal. Do not install or start those services on a development orb as a production substitute.
+Follow the [executor installation and recovery guide](https://github.com/softwarecorporation/roundhouse/blob/main/executor/README.md#install-on-an-always-on-linux-host) and reviewed templates under `deploy/executor/`. They cover persistent state, dedicated service identity, separate supervised listeners, cgroup limits, TLS proxying, and a local rehearsal. Do not install or start those services on a development orb as a production substitute.
 
 The agent listener runs approved commands in mandatory bubblewrap. It cannot see the host filesystem, network, provider keys, or recovery store. The separate recovery listener and offline CLI work without the Worker or model. Both host processes share the executor UID, so they are not isolated from a compromised host process under that identity.
 

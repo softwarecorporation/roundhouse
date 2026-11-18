@@ -6,7 +6,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tschk/roundhouse.git",
+    "url": "https://github.com/softwarecorporation/roundhouse.git",
     "directory": "npm"
   },
   "files": ["dist", "wasm", "rust", "licenses", "README.md", "LICENSE", "UPSTREAM.md", "THIRD_PARTY_NOTICES.md"],

@@ -5,7 +5,7 @@ edition = "2021"
 rust-version = "1.100"
 license = "MPL-2.0"
 description = "Roundhouse policy and Wasm bridge for the Rotary lite agent"
-repository = "https://github.com/tschk/roundhouse"
+repository = "https://github.com/softwarecorporation/roundhouse"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

@@ -2,19 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Roundhouse | AI on call for your apps</title>
     <meta
       name="description"
-      content="While you sleep, Roundhouse detects failures, investigates, runs configured recovery actions automatically and checks app health again."
+      content="AI investigates app failures, runs configured recovery actions automatically and independently verifies the result."
     />
-    <meta name="theme-color" content="#101c30" />
     <link rel="icon" href="/roundhouse.svg" />
-    <link rel="stylesheet" href="/platform.css" />
+    <link rel="stylesheet" href="/replay.css" />
+    <script src="/replay.js" defer></script>
   </head>
-  <body class="night">
-    <a class="skip-link" href="#main">Skip to content</a>
-    <header class="mast">
+  <body>
+    <a class="skip" href="#film">Skip to demo</a>
+    <header>
       <a class="brand" href="/"
         ><img
           src="/roundhouse.svg"
@@ -23,91 +23,175 @@
           alt=""
         />Roundhouse</a
       >
-      <nav aria-label="Main">
-        <a href="/docs/setup">Docs</a><a href="/console">Sign in</a>
-      </nav>
+      <nav><a href="/docs/setup">Docs</a><a href="/console">Sign in</a></nav>
     </header>
-    <main id="main">
-      <section class="tour" aria-label="Explore the roundhouse">
-        <div class="shift-copy">
-          <h1>On call while<br />you sleep.</h1>
-          <p>
-            Roundhouse detects app failures, investigates with AI, runs recovery
-            automatically, then checks health again.
-          </p>
-          <a class="button primary" href="/console">Connect an app</a>
-          <a class="trial" href="/console?guest=1#systems">Try the drill</a>
-        </div>
-        <div class="scene-map">
-          <img
-            src="/roundhouse-night.webp"
-            width="1536"
-            height="1024"
-            fetchpriority="high"
-            alt="Cutaway of a working roundhouse at night. A signal watches the approach. The turntable routes a locomotive to lit repair bays beside the dispatch office."
-          /><nav class="scene-pins" aria-label="Explore a location"><a id="signal-pin" href="#signals">Approach signal</a><a id="repair-pin" href="#workshop">Repair bay</a><a id="office-pin" href="#dispatch">Dispatch office</a></nav>
-        </div>
-        <article id="signals" class="scene-detail" tabindex="-1">
-          <a class="scene-back" href="#signal-pin">← Whole roundhouse</a><h2>Approach signal</h2>
-          <p>
-            Health checks watch each app. A failed check or an incoming event
-            starts an investigation. Read
-            <a href="/console#analytics">event analytics</a> and
-            <a href="/console#logs">structured logs</a> in the workspace.
-          </p>
-        </article>
-        <article id="workshop" class="scene-detail" tabindex="-1">
-          <a class="scene-back" href="#repair-pin">← Whole roundhouse</a><h2>Repair bay</h2>
-          <p>
-            Set the endpoints and actions once. AI inspects the fault, runs a
-            configured action and verifies the result independently.
-            <a href="/console#apps">New automations</a> run without a click
-            unless you turn on approval.
-          </p>
-          <a class="trial" href="/console?guest=1#systems">Run a recovery drill</a>
-        </article>
-        <article id="dispatch" class="scene-detail" tabindex="-1">
-          <a class="scene-back" href="#office-pin">← Whole roundhouse</a><h2>Dispatch office</h2>
-          <p>
-            Read the <a href="/console#incidents">incident record</a> in the
-            morning. Publish a <a href="/console#status">status update</a>, or
-            let another agent read the evidence through
-            <a href="/console#settings">scoped MCP access</a>.
-          </p>
-        </article>
+    <main>
+      <section class="intro">
+        <h1>AI takes the night shift.</h1>
+        <p>
+          Roundhouse detects failures, investigates the evidence and runs
+          configured fixes while you sleep. A fresh health check decides when
+          the incident closes.
+        </p>
       </section>
-      <section class="shift-record">
-        <div>
-          <h2>A worker stopped.<br />The report still shipped.</h2>
-          <p>
-            Recorded on the hosted service in an isolated recovery drill. This
-            run used the fixture agent, not a paid model.
-          </p>
-          <a class="trial" href="/console?guest=1#systems"
-            >Run the same drill</a
-          >
+      <section id="film" aria-label="Recovery demonstration">
+        <div class="slate">
+          <b>The paused export worker</b><span>Illustrated fixture replay</span>
         </div>
-        <ol>
-          <li>
-            <time>13:19:08 UTC</time>Health check detected the paused worker.
-          </li>
-          <li>
-            <time>13:19:08</time>Two fixture calls investigated. One resume ran.
-          </li>
-          <li><time>13:19:08</time>First verification still returned 503.</li>
-          <li>
-            <time>13:19:38</time>Independent check returned 200. CSV verified:
-            41 orders, 7 rows.
-          </li>
-        </ol>
+        <div class="screen">
+          <article data-stage="Healthy">
+            <div class="caption">
+              <small>Reportroom / Before the fault</small>
+              <h2>
+                Orders in.<br />
+                Reports out.
+              </h2>
+            </div>
+            <div class="surface">
+              <label>Reportroom</label>
+              <h3>Sales reports</h3>
+              <div class="record">
+                <span>Export worker</span><strong>Running</strong>
+              </div>
+              <div class="record">
+                <span>Shop dataset</span><b>165 orders</b>
+              </div>
+              <div class="record">
+                <span>Health endpoint</span><strong>200 OK</strong>
+              </div>
+            </div>
+          </article>
+          <article data-stage="Outage">
+            <div class="caption">
+              <small>Reportroom / Outage</small>
+              <h2>The export stalls.</h2>
+            </div>
+            <div class="surface">
+              <label>Reportroom</label>
+              <h3>Sales reports</h3>
+              <div class="record"><span>Seven-day CSV</span><b>Queued</b></div>
+              <div class="record">
+                <span>Export worker</span><em>Paused</em>
+              </div>
+              <div class="record">
+                <span>Health endpoint</span><em>503 Unavailable</em>
+              </div>
+            </div>
+          </article>
+          <article data-stage="Detected">
+            <div class="caption">
+              <small>Roundhouse / Scheduled probe</small>
+              <h2>The agent picks it up.</h2>
+            </div>
+            <div class="surface agent">
+              <label>Incident desk · 13:19:08 UTC</label>
+              <h3>Worker unavailable</h3>
+              <div class="record"><span>Probe</span><em>503</em></div>
+              <div class="record">
+                <span>Incident</span><b>Investigating</b>
+              </div>
+              <p>Inspect the export queue before choosing a recovery action.</p>
+            </div>
+          </article>
+          <article data-stage="Evidence">
+            <div class="caption">
+              <small>Roundhouse / Agent investigation</small>
+              <h2>
+                The queue has work.<br />
+                The worker is off.
+              </h2>
+            </div>
+            <div class="surface agent">
+              <label>Inspection log · export_queue</label>
+              <h3>Queue diagnostic</h3>
+              <div class="record">
+                <code>worker_running</code><em>false</em>
+              </div>
+              <div class="record"><code>jobs[0].state</code><b>queued</b></div>
+              <div class="record"><code>recoveries</code><b>0</b></div>
+            </div>
+          </article>
+          <article data-stage="Repair">
+            <div class="caption">
+              <small>Roundhouse / Automatic recovery</small>
+              <h2>Resume the worker.</h2>
+            </div>
+            <div class="surface agent">
+              <label>Action history · 13:19:08 UTC</label>
+              <h3><code>resume_exports</code></h3>
+              <div class="record"><span>Execution</span><b>Automatic</b></div>
+              <div class="record"><span>Action claims</span><b>1</b></div>
+              <div class="record">
+                <span>Worker response</span><strong>Accepted</strong>
+              </div>
+            </div>
+          </article>
+          <article data-stage="Verified">
+            <div class="caption">
+              <small>Roundhouse / Independent verification</small>
+              <h2>
+                Accepted isn’t healthy.<br />
+                Check again.
+              </h2>
+            </div>
+            <div class="surface">
+              <label>Recovery evidence</label>
+              <h3>Report complete</h3>
+              <div class="record">
+                <span>13:19:08 · First check</span><em>503</em>
+              </div>
+              <div class="record">
+                <span>13:19:38 · Fresh check</span><strong>200 OK</strong>
+              </div>
+              <div class="record">
+                <span>CSV checksum matched</span><b>41 orders · 7 rows</b>
+              </div>
+            </div>
+          </article>
+          <article data-stage="PR preview">
+            <div class="caption">
+              <small>Illustrative handoff / Not a shipped integration</small>
+              <h2>Leave a record for morning.</h2>
+            </div>
+            <div class="surface">
+              <label>Pull request mockup · Not submitted</label>
+              <h3>Document the export outage</h3>
+              <div class="record"><span>Cause</span><b>Paused worker</b></div>
+              <div class="record">
+                <span>Recovery</span><b>Resumed exports</b>
+              </div>
+              <p>No repository was changed. Roundhouse did not open a PR.</p>
+            </div>
+          </article>
+        </div>
+        <div id="controls" hidden>
+          <b id="counter"></b>
+          <div>
+            <button id="play">Pause</button><button id="replay">Replay</button
+            ><button id="next">Next scene</button
+            ><button id="skip">Skip to end</button
+            ><button id="static">Read all scenes</button>
+          </div>
+        </div>
+      </section>
+      <section class="after">
+        <div>
+          <h2>Run the recovery yourself.</h2>
+          <p>
+            The replay reconstructs a recorded, isolated fixture drill. New
+            actions run automatically; turn on approval only where you need it.
+          </p>
+          <a href="/console?guest=1#systems">Start an isolated drill →</a>
+        </div>
+        <nav aria-label="Workspace">
+          <a href="/console#apps">Apps & automations</a
+          ><a href="/console#analytics">Event analytics</a
+          ><a href="/console#logs">Structured logs</a
+          ><a href="/console#status">Status pages</a
+          ><a href="/console#settings">MCP access</a>
+        </nav>
       </section>
     </main>
-    <footer class="mast">
-      <span>Software Corporation (Hong Kong)</span>
-      <nav aria-label="Footer">
-        <a href="/docs/setup">Self-host</a
-        ><a href="https://github.com/softwarecorporation/roundhouse">Source</a>
-      </nav>
-    </footer>
+    <footer>Software Corporation (Hong Kong)</footer>
   </body>
 </html>

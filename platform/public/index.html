@@ -2,198 +2,114 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f6c29e" />
-    <title>Roundhouse | App monitoring and AI recovery</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Roundhouse | AI on call for your apps</title>
     <meta
       name="description"
-      content="Monitor your apps, investigate failures with AI and run the recovery actions you authorize."
+      content="While you sleep, Roundhouse detects failures, investigates, runs configured recovery actions automatically and checks app health again."
     />
+    <meta name="theme-color" content="#101c30" />
     <link rel="icon" href="/roundhouse.svg" />
-    <link
-      rel="preload"
-      href="/archivo.ttf"
-      as="font"
-      type="font/ttf"
-      crossorigin
-    />
     <link rel="stylesheet" href="/platform.css" />
   </head>
-  <body class="atlas">
+  <body class="night">
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="mast">
       <a class="brand" href="/"
         ><img
           src="/roundhouse.svg"
-          width="45"
-          height="45"
+          width="40"
+          height="40"
           alt=""
         />Roundhouse</a
       >
       <nav aria-label="Main">
-        <a href="/docs/setup">Docs</a><a href="/console">Sign in ↗</a>
+        <a href="/docs/setup">Docs</a><a href="/console">Sign in</a>
       </nav>
     </header>
     <main id="main">
-      <section class="plate">
-        <div class="plate-copy">
-          <h1>On call for<br />your apps.</h1>
+      <section class="shift">
+        <div class="shift-copy">
+          <h1>On call while<br />you sleep.</h1>
           <p>
-            Roundhouse monitors app health. When a check fails, AI investigates,
-            runs the fix you’ve authorized, and checks that it worked.
+            Roundhouse detects app failures, investigates with AI, runs recovery
+            automatically, then checks health again.
           </p>
-          <div class="action-row">
-            <a class="button primary" href="/console">Open workspace ↗</a
-            ><a class="trial" href="/console?guest=1#systems"
-              >Try a recovery drill</a
-            >
-          </div>
+          <a class="button primary" href="/console">Connect an app</a>
+          <a class="trial" href="/console?guest=1#systems">Try the drill</a>
         </div>
-        <figure class="drawing">
-          <svg
-            viewBox="-285 -274 570 516"
-            role="img"
-            aria-labelledby="plan-title"
-          >
-            <title id="plan-title">
-              Plan of a railway roundhouse with thirteen engine bays and a
-              rotating track bridge
-            </title>
-            <defs>
-              <g id="bay">
-                <path
-                  d="M-27 -222 L-14 -112 L14 -112 L27 -222Z"
-                  fill="#203a4b"
-                />
-                <path
-                  d="M-21 -214 L-11 -120 M21 -214 L11 -120 M-22 -203H22 M-19 -169H19"
-                  fill="none"
-                  stroke="#90a5a0"
-                  stroke-width="1.6"
-                />
-                <path
-                  d="M-6 -214V-44 M6 -214V-44"
-                  stroke="#283f4b"
-                  fill="none"
-                />
-                <path
-                  d="M-5 -210V-112 M5 -210V-112"
-                  stroke="#f6c29e"
-                  fill="none"
-                />
-              </g>
-            </defs>
-            <g fill="none" stroke="#a77960" stroke-width=".8">
-              <circle r="237" stroke-dasharray="4 5" />
-              <circle r="99" />
-              <path d="M-278 0H278M0 -261V236" stroke-dasharray="10 5 2 5" />
-            </g>
-            <g>
-              <use href="#bay" transform="rotate(-84)" />
-              <use href="#bay" transform="rotate(-70)" />
-              <use href="#bay" transform="rotate(-56)" />
-              <use href="#bay" transform="rotate(-42)" />
-              <use href="#bay" transform="rotate(-28)" />
-              <use href="#bay" transform="rotate(-14)" />
-              <use href="#bay" />
-              <use href="#bay" transform="rotate(14)" />
-              <use href="#bay" transform="rotate(28)" />
-              <use href="#bay" transform="rotate(42)" />
-              <use href="#bay" transform="rotate(56)" />
-              <use href="#bay" transform="rotate(70)" />
-              <use href="#bay" transform="rotate(84)" />
-            </g>
-            <g fill="none" stroke="#263e4b">
-              <circle r="45" stroke-width="2" />
-              <circle r="40" />
-              <path
-                d="M-6 45V238 M6 45V238 M15 41 Q30 130 148 186 M26 38 Q41 124 156 177"
-              />
-              <path
-                d="M0 49V239"
-                stroke="#976e56"
-                stroke-width="22"
-                stroke-dasharray="2 7"
-              />
-            </g>
-            <g transform="rotate(-28)">
-              <rect
-                x="-10"
-                y="-43"
-                width="20"
-                height="86"
-                rx="2"
-                fill="#ae3922"
-              />
-              <path d="M-5 -41V41M5 -41V41" stroke="#f6c29e" />
-              <circle r="4" fill="#213a49" />
-            </g>
-            <g fill="none" stroke="#283e49">
-              <path d="M24 18L91 76H207M-136 -157L-180 -214H-258" />
-              <circle cx="24" cy="18" r="2" />
-              <circle cx="-136" cy="-157" r="2" />
-            </g>
-            <g font-family="monospace" font-size="12" fill="#283e49">
-              <text x="101" y="70">Turntable</text>
-              <text x="-259" y="-222">Engine shed</text>
-            </g>
-          </svg>
+        <figure class="engine-house">
+          <img
+            src="/roundhouse-night.webp"
+            width="1536"
+            height="1024"
+            fetchpriority="high"
+            alt="Cutaway of a working roundhouse at night. A signal watches the approach. The turntable routes a locomotive to lit repair bays beside the dispatch office."
+          /><a class="signal" href="#signals">Approach signal</a
+          ><a class="workshop" href="#workshop">Repair bay</a
+          ><a class="dispatch" href="#dispatch">Dispatch office</a>
         </figure>
       </section>
-      <section class="drill">
-        <div>
-          <h2>A recovery,<br />on record.</h2>
+      <section class="yard" aria-label="How the roundhouse works">
+        <article id="signals">
+          <h2>At the signal</h2>
           <p>
-            From an isolated demo run. The fixture agent uses a synthetic
-            reporting app; no customer system is involved.
+            Health checks watch each app. A failed check or an incoming event
+            starts an investigation. Read
+            <a href="/console#analytics">event analytics</a> and
+            <a href="/console#logs">structured logs</a> in the workspace.
+          </p>
+        </article>
+        <article id="workshop">
+          <h2>In the repair bay</h2>
+          <p>
+            Set the endpoints and actions once. AI inspects the fault, runs a
+            configured action and verifies the result independently.
+            <a href="/console#apps">New automations</a> run without a click
+            unless you turn on approval.
+          </p>
+        </article>
+        <article id="dispatch">
+          <h2>At the dispatch desk</h2>
+          <p>
+            Read the <a href="/console#incidents">incident record</a> in the
+            morning. Publish a <a href="/console#status">status update</a>, or
+            let another agent read the evidence through
+            <a href="/console#settings">scoped MCP access</a>.
+          </p>
+        </article>
+      </section>
+      <section class="shift-record">
+        <div>
+          <h2>A worker stopped.<br />The report still shipped.</h2>
+          <p>
+            Recorded on the hosted service in an isolated recovery drill. This
+            run used the fixture agent, not a paid model.
           </p>
           <a class="trial" href="/console?guest=1#systems"
-            >Run the drill yourself ↗</a
+            >Run the same drill</a
           >
         </div>
         <ol>
-          <li><span>Check</span>Health endpoint returned <code>503</code></li>
-          <li><span>Diagnosis</span>Export worker was paused</li>
-          <li><span>Action</span>Authorized resume ran once</li>
           <li>
-            <span>Verification</span>Fresh health check returned
-            <code>200</code>
+            <time>13:19:08 UTC</time>Health check detected the paused worker.
+          </li>
+          <li>
+            <time>13:19:08</time>Two fixture calls investigated. One resume ran.
+          </li>
+          <li><time>13:19:08</time>First verification still returned 503.</li>
+          <li>
+            <time>13:19:38</time>Independent check returned 200. CSV verified:
+            41 orders, 7 rows.
           </li>
         </ol>
-      </section>
-      <section class="directory">
-        <h2>Inside the workspace</h2>
-        <dl>
-          <dt><a href="/console#apps">Apps &amp; automations ↗</a></dt>
-          <dd>
-            Connect endpoints. Run checks on a schedule or trigger an
-            investigation with an event. Require approval per action if needed.
-          </dd>
-          <dt><a href="/console#analytics">Events &amp; logs ↗</a></dt>
-          <dd>
-            Count pageviews and custom events. Follow a trace ID through
-            structured logs.
-          </dd>
-          <dt><a href="/console#incidents">Incident history ↗</a></dt>
-          <dd>
-            Inspect the agent’s calls, reported usage, actions and verification
-            results.
-          </dd>
-          <dt><a href="/console#status">Public status ↗</a></dt>
-          <dd>Publish updates when you choose.</dd>
-          <dt><a href="/console#settings">MCP access ↗</a></dt>
-          <dd>
-            Give agents a scoped key to read evidence or request an
-            investigation.
-          </dd>
-        </dl>
       </section>
     </main>
     <footer class="mast">
       <span>Software Corporation (Hong Kong)</span>
       <nav aria-label="Footer">
         <a href="/docs/setup">Self-host</a
-        ><a href="https://github.com/softwarecorporation/roundhouse">Source ↗</a>
+        ><a href="https://github.com/softwarecorporation/roundhouse">Source</a>
       </nav>
     </footer>
   </body>

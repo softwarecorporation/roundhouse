@@ -20,7 +20,7 @@ export async function createRuntime({ port, origin = 'https://roundhouse.test', 
       if (!/^\/[a-zA-Z0-9/._-]+$/.test(path) || path.includes('..')) return new Response(null, { status: 404 });
       try { return new Response(await readFile(root + '.cloudflare/output/v1/workers/default/assets' + path), { headers: {
         'content-type': path.endsWith('.html') ? 'text/html; charset=utf-8' : path.endsWith('.css') ? 'text/css'
-          : path.endsWith('.svg') ? 'image/svg+xml' : path.endsWith('.ttf') ? 'font/ttf' : 'text/javascript' } }); }
+          : path.endsWith('.webp') ? 'image/webp' : path.endsWith('.svg') ? 'image/svg+xml' : path.endsWith('.ttf') ? 'font/ttf' : 'text/javascript' } }); }
       catch { return new Response(null, { status: 404 }); }
     } },
     outboundService: async request => {

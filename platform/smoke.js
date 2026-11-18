@@ -34,15 +34,25 @@ try {
   }) : await api('/api/auth/guest', {});
   await value(auth); cookie = auth.headers.get('set-cookie').split(';')[0];
   if (live) await value(await api('/api/provider', { mode: 'anthropic' }));
+  const manual = process.env.SMOKE_APPROVAL === 'manual';
+  assert.equal((await value(await api('/api/policy'))).require_approval, false);
+  if (manual) await value(await api('/api/policy', { require_approval: true }));
   await value(await api('/api/monitor/start', {}));
   await value(await api('/api/demo/fault', {}));
-  const pending = await until(s => s.monitoring.incidents[0]?.state === 'awaiting_approval');
-  assert.equal(pending.app.recoveries, 0);
-  assert.equal(pending.app.worker_running, false);
-  assert.equal(pending.monitoring.incidents[0].history.some(h => h.kind === 'inspection'), true);
-  const id = pending.monitoring.incidents[0].id;
-  await value(await api(`/api/incidents/${id}/approve`, {}));
+  if (manual) {
+    const pending = await until(s => s.monitoring.incidents[0]?.state === 'awaiting_approval');
+    assert.equal(pending.app.recoveries, 0);
+    assert.equal(pending.app.worker_running, false);
+    assert.equal(pending.monitoring.incidents[0].history.some(h => h.kind === 'inspection'), true);
+    const id = pending.monitoring.incidents[0].id;
+    await value(await api(`/api/incidents/${id}/approve`, {}));
+  }
   const recovered = await until(s => s.monitoring.incidents[0]?.state === 'resolved');
+  const { id, history } = recovered.monitoring.incidents[0];
+  assert.equal(history.some(h => h.kind === 'inspection'), true);
+  assert.equal(history.filter(h => h.kind === 'action_claimed').length, 1);
+  assert.equal(history.some(h => h.kind === 'verification' && JSON.parse(h.detail).healthy), true);
+  assert.equal(history.some(h => h.kind === 'approval_required'), manual);
   assert.equal(recovered.app.recoveries, 1); assert.equal(recovered.app.healthy, true);
   const job = recovered.app.jobs[0];
   const response = await api(`/api/reports/${job.id}.csv`); assert.equal(response.status, 200);
@@ -51,7 +61,7 @@ try {
   let orders = 0, revenue = 0;
   for (let d = 23; d < 30; d++) for (let j = 0; j < 3 + d % 6; j++) { orders++; revenue += 1200 + d * 137 + j * 499 + (d * j % 7) * 83; }
   assert.equal(job.order_count, orders); assert.equal(job.revenue_cents, revenue); assert.equal(job.rows, 7);
-  assert.equal((await api(`/api/incidents/${id}/approve`, {})).status, 409);
+  if (manual) assert.equal((await api(`/api/incidents/${id}/approve`, {})).status, 409);
   const report = { passed: true, origin, at: new Date().toISOString(), provider: recovered.provider, job,
     budgets: recovered.monitoring.budgets, incident: recovered.monitoring.incidents[0] };
   if (process.env.SMOKE_REPORT) await writeFile(process.env.SMOKE_REPORT, JSON.stringify(report, null, 2) + '\n');

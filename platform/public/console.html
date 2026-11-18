@@ -35,7 +35,7 @@
       <header class="console-topbar"><strong id="current-view">Apps</strong><div class="snapshot-state"><span id="snapshot-state">Loading…</span><button id="refresh" class="quiet-button" type="button">Refresh</button></div></header>
       <div id="snapshot-error" class="error-panel" role="alert" hidden></div>
       <section id="view-apps" class="view" aria-labelledby="apps-title">
-        <div class="page-heading"><h1 id="apps-title">Application register</h1><button id="connect-app" class="button primary" type="button">Connect app</button></div>
+        <div class="page-heading"><h1 id="apps-title">Monitored apps</h1><button id="connect-app" class="button primary" type="button">Connect app</button></div>
         <div id="apps-error" class="error-panel" role="alert" hidden></div>
         <p id="apps-access" class="muted" hidden>This demo uses one isolated app.</p>
         <p id="apps-scheduler" class="fine-print">Reading scheduler…</p>
@@ -44,12 +44,12 @@
           <div class="panel-heading"><h2 id="app-detail-name"></h2><span id="app-detail-kind" class="badge"></span></div>
           <p id="app-detail-endpoint" class="app-endpoint"></p>
           <div id="app-health" class="operational-summary" aria-live="polite"></div>
-          <div class="action-row"><button id="app-start" class="button secondary" type="button">Start tenant scheduler</button><button id="app-stop" class="button secondary" type="button">Stop tenant scheduler</button><button id="app-event" class="button primary" type="button">Investigate app</button><button id="app-edit" class="quiet-button" type="button">Configure</button></div>
-          <p class="fine-print">Start and stop affect all apps in this tenant. Investigation uses only this app’s configured authority.</p>
+          <div class="action-row"><button id="app-start" class="button secondary" type="button">Start monitoring</button><button id="app-stop" class="button secondary" type="button">Stop monitoring</button><button id="app-event" class="button primary" type="button">Investigate app</button><button id="app-edit" class="quiet-button" type="button">Configure</button></div>
+          <p class="fine-print">Monitoring starts or stops for all apps in this workspace.</p>
           <p id="app-provider-boundary" class="fine-print"></p>
           <h3 class="section-subtitle">Permitted actions</h3><div id="app-actions"></div>
           <h3 class="section-subtitle">Recent probes</h3><div id="app-probes"></div>
-          <h3 class="section-subtitle">Incidents</h3><div id="app-incidents"></div><a class="text-link" href="#incidents">Evidence and approval</a>
+          <h3 class="section-subtitle">Incidents</h3><div id="app-incidents"></div><a class="text-link" href="#incidents">Incident history</a>
           <details><summary>Configuration and limits</summary><pre id="app-config-json" class="code-block"></pre><pre id="app-limits" class="code-block"></pre></details>
         </article>
         <details id="app-editor" class="panel">
@@ -68,7 +68,7 @@
       <section id="view-systems" class="view" aria-labelledby="systems-title" hidden>
         <div class="page-heading"><h1 id="systems-title">Reportroom example</h1><a class="text-link" href="https://reportroom.roundhouse.tsc.hk" target="_blank" rel="noopener">Open Reportroom</a></div>
         <div id="system-metrics" class="operational-summary" aria-live="polite"></div>
-        <article class="panel target-operations"><div class="panel-heading"><h2>Reportroom</h2><span id="recovery-mode" class="badge">Policy loading</span></div><p id="recovery-description" class="muted">Reading recovery policy…</p><div class="action-row"><button class="button primary" data-action="start" type="button">Start tenant scheduler</button><button class="button secondary" data-action="stop" type="button">Stop tenant scheduler</button><button class="button secondary" data-action="investigate" type="button">Investigate example</button><a class="text-link" href="#incidents">View incidents</a></div><p class="fine-print">Scheduler controls affect all apps in this tenant.</p><details class="demo-controls"><summary>Demo controls</summary><div class="action-row"><button class="quiet-button danger-text" data-action="fault" type="button">Introduce fault</button><button class="quiet-button" data-action="reset" type="button">Reset target</button></div><p class="fine-print">Synthetic target only. Reset bypasses agent recovery.</p></details></article>
+        <article class="panel target-operations"><div class="panel-heading"><h2>Reportroom</h2><span id="recovery-mode" class="badge">Policy loading</span></div><p id="recovery-description" class="muted">Reading recovery policy…</p><div class="action-row"><button class="button primary" data-action="start" type="button">Start monitoring</button><button class="button secondary" data-action="stop" type="button">Stop monitoring</button><button class="button secondary" data-action="investigate" type="button">Investigate example</button><a class="text-link" href="#incidents">View incidents</a></div><p class="fine-print">Scheduler controls affect all apps in this tenant.</p><details class="demo-controls"><summary>Demo controls</summary><div class="action-row"><button class="quiet-button danger-text" data-action="fault" type="button">Introduce fault</button><button class="quiet-button" data-action="reset" type="button">Reset target</button></div><p class="fine-print">Synthetic target only. Reset bypasses agent recovery.</p></details></article>
         <article class="panel"><h2>Recent probes</h2><div id="probe-list"></div></article>
         <article class="panel"><h2>Drill policy</h2><form id="policy-form"><fieldset id="policy-controls"><label class="checkbox-label" for="require-approval"><input id="require-approval" name="require_approval" type="checkbox"> Require approval before recovery</label><p class="fine-print">Applies only to the synthetic worker.</p><button class="button primary" type="submit">Save drill policy</button></fieldset></form></article>
         <article class="panel"><h2>Limits and reservations</h2><p class="fine-print">Capacity reservations, not a provider billing cap.</p><div id="budget-summary"></div><details id="limit-disclosure"><summary>Configured limits</summary><pre id="limits" class="code-block"></pre></details></article>

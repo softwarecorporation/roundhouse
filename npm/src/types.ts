@@ -6,6 +6,7 @@ export interface RegisteredTool {
   input_schema: unknown;
   adapter: string;
   effect: ToolEffect;
+  auto_approve?: boolean;
   options?: unknown;
 }
 export interface Monitor {

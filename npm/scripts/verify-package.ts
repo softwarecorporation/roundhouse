@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 
 const npm = resolve(import.meta.dir, "..");
 const archive = await realpath(resolve(process.argv[2] ?? resolve(npm, "tschk-roundhouse-0.2.0.tgz")));
-const scratch = resolve(npm, "../../.amp/in/orb-backup");
+const scratch = process.env.ROUNDHOUSE_TEST_SCRATCH ?? resolve(npm, "../../.amp/in/orb-backup");
 await mkdir(scratch, { recursive: true });
 const consumer = await mkdtemp(resolve(scratch, "roundhouse-package-"));
 function run(args: string[], cwd: string, env = process.env) {

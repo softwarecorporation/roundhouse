@@ -2,11 +2,13 @@
 
 The platform runs on Cloudflare Workers, D1, and SQLite Durable Objects. No open laptop or persistent browser is required. Monitoring continues through Durable Object alarms. The browser polls snapshots; it does not run the scheduler.
 
-The first managed release controls only synthetic Reportroom. Each authenticated tenant has a separate controller, app database, incident history, budget, analytics, logs, and status publication. Invited owners manage keys and provider mode. Guests get an isolated fixture-only session and a maximum 24-hour monitoring lease.
+Owners connect their own public HTTPS apps. Each tenant has a separate controller, configuration, incident history, shared request/action budget, analytics, logs, and status publication. Reportroom has a separate synthetic app database per tenant. Guests get only that isolated example, fixture mode, and a maximum 24-hour monitoring lease.
 
 ## Try the hosted service
 
-Open [Roundhouse](https://roundhouse.tsc.hk/console?guest=1). Start monitoring, introduce a synthetic fault, and open Incidents. Read the inspection evidence, select the approval consent, and approve recovery. The queue alarm generates the CSV, then an independent health probe resolves the incident. Open [Reportroom](https://reportroom.roundhouse.tsc.hk) with the same session to download reports.
+Open [Reportroom](https://reportroom.roundhouse.tsc.hk), enter an isolated demo workspace, and name it. Configure a daily or weekly sales report, generate it, inspect its preview, and download the CSV. Preferences and history persist in that workspace. Orders are synthetic; generation and storage are real. No billing or store integration is simulated as connected.
+
+Open [Roundhouse](https://roundhouse.tsc.hk/console) with the same session. Start monitoring and optionally pause the synthetic worker. New workspaces investigate, resume exports, and independently verify recovery automatically. **Settings → Require approval** enables the human gate. Previously initialized controllers retain approval; no existing explicit policy changes silently. Reportroom's separate Roundhouse view contains the optional failure demonstration, not the main reporting journey.
 
 The deterministic fixture exercises the real agent protocol but does not demonstrate model intelligence. Owners can explicitly select Anthropic in Settings. The server uses its secret binding; this release does not collect customer provider keys in the browser. Live mode has ten daily requests, four requests per incident, three action claims, 1,024 maximum output tokens, a 30-second investigation deadline, and a $0.50 daily reservation allowance per controller. Reservations are admission accounting, not an invoice cap. Use dedicated provider-account limits as well.
 
@@ -42,7 +44,23 @@ Roll back by activating the previous `roundhouse-platform` Worker version in Clo
 
 Create a scoped key in Settings. Point a Streamable HTTP MCP client at `/mcp` with `Authorization: Bearer <key>`. This is stateless JSON-RPC with manual bearer authentication, not OAuth. Supported tools read systems, incidents, analytics, and logs, or start, stop, and request investigation. No MCP tool approves recovery, changes providers, publishes status, fetches arbitrary URLs, or runs shell commands.
 
-`read`, `ingest`, and `control` are separate key scopes. Only authenticated browser sessions can approve their own synthetic recovery. Owner sessions alone administer keys and public status. Tenant IDs always come from authentication, never from ingestion payloads or tool arguments.
+`read`, `ingest`, and `control` are separate key scopes. Only authenticated browser sessions can approve pending recovery. Owner sessions alone configure connected apps, administer keys, and publish status. Tenant IDs always come from authentication, never from ingestion payloads or tool arguments.
+
+## Connect your app
+
+In **Apps**, add a name, ID and public HTTPS health endpoint. Configure the expected HTTP status, interval, optional GET diagnostics and fixed POST recovery actions. Actions default automatic; disable automatic execution on an action to require approval. Reportroom's separate setting does not override connected-app policies.
+
+The API exposes `GET/POST /api/apps`, `GET /api/apps/:id`, and `POST /api/apps/:id/config`. Configuration accepts `id`, `name`, `health_url`, `expected_status`, `interval_seconds`, `timeout_seconds`, `environment`, `diagnostics: [{name,url}]`, and `actions: [{name,description,url,auto_approve}]`. Ten connected apps, four diagnostics and four actions per app are allowed. Stop monitoring and resolve incidents before configuration changes. Apps share one scheduler and tenant-wide limits; start/stop controls affect all apps.
+
+`POST /api/apps/:id/events` accepts an empty object plus `Idempotency-Key` with a control-scoped key or authorized session. Scheduled checks and events use the same investigation/action/verification path. MCP tools `apps`, `systems`, `incidents`, and `investigate` support connected apps; the latter three accept `app_id`. MCP cannot onboard apps or grant approval.
+
+Connected-app investigation and actions require owner-selected Anthropic mode and the operator's provider secret. Fixture mode never executes external recovery. For authenticated app endpoints, provision Worker secret `APP_SECRETS_JSON`: a map of `tenant_id/app_id` to a dedicated app bearer token. Do this through the deployment secret manager, not Git, browser forms, or shell arguments. Tokens are selected server-side, never returned in app configuration, and redacted from model evidence. There is no customer credential vault yet.
+
+Outbound transport permits only exact configured endpoints and methods, rebuilds headers, and refuses redirects. It never forwards session cookies, provider credentials or internal Reportroom tokens. Credentials in URLs, queries, fragments, IP literals and internal/reserved names are rejected. Cloudflare workerd's default public-only global fetch is the final egress boundary, including DNS rebinding; do not attach private networking or a permissive global outbound service. See [workerd's security contract](https://github.com/cloudflare/workerd/discussions/1523). Local test transports are fixtures, not live customer integrations.
+
+Incident details include provider-call duration, outcome and provider-reported usage when available. Missing usage remains unknown. No prompts or responses are added to this audit record. **Reserved** means admission reservations, not actual billed cost. [Foglamp comparison](../docs/foglamp-comparison.md) documents the remaining tracing, pricing, eval and alert gaps.
+
+## Ingest evidence
 
 Send explicit JSON batches to `POST /api/ingest` using a server-side ingest key. The envelope is `{ "events": [...], "logs": [...] }`. Events require `id`, `kind` (`pageview` or `event`), `name`, and relative `path`. Logs require `id`, `service`, `level`, and `message`. Optional `at` is an ISO timestamp within one day; optional log `trace_id` correlates records. Exact replays are idempotent. Changed duplicate IDs reject the whole batch.
 
@@ -64,4 +82,4 @@ Passwords use salted PBKDF2-SHA256; D1 stores session and API-key hashes, not ra
 
 Public status pages are explicitly published operator updates, not computed uptime SLAs. No monitor automatically publishes an incident. Analytics and status are independently implemented small features, not drop-in Umami, PostHog, Better Stack, or OpenStatus compatibility.
 
-Pending unknown action outcomes need operator reconciliation. The service never retries a claimed recovery blindly. General customer-system onboarding, per-user provider-key vaults, durable external browser sessions, arbitrary MCP servers, and unrestricted native execution are not part of this managed release.
+Pending unknown action outcomes need operator reconciliation. The service never retries a claimed recovery blindly. Per-user provider-key vaults, durable external browser sessions, arbitrary upstream MCP servers, cost pricing, response-quality evals and notification delivery are not part of this managed release.

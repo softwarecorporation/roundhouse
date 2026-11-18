@@ -31,14 +31,19 @@ Preparation builds the repository's own `npm` package and actual Rotary `rx4 = "
 
 Expect `Reportroom ready on port 3200. Provider mode: fixture. Synthetic data only.` Open port 3200 on that development host. The default listener is loopback-only. In an Amp orb, expose it through the orb's portal mechanism rather than sharing a sandbox-local URL. `PORT` changes the port; set `HOST=0.0.0.0` only for an explicitly intended development container or access-controlled portal. This is a single-user demo, not a publicly authenticated SaaS.
 
-## Try the whole flow
+## Use the reporting workspace
 
-1. Choose a seven-day or thirty-day period and select **Create report**. A Durable Object alarm computes a CSV from seeded orders. The completed report has a downloadable file and its SHA-256 digest. Different periods aggregate different rows.
-2. Select **Run failure drill**. This pauses only the demo export worker and queues a report. Roundhouse receives `worker.paused` and `report.queued` telemetry plus an idempotent investigation event. Health is HTTP 503.
-3. Read the Roundhouse panel. Rotary requests inspection of the actual queue, then proposes the fixed `resume_exports` recovery action. The incident waits for approval and the worker stays paused. The UI labels fixture responses as deterministic, not AI reasoning.
-4. Select **Approve recovery** for the displayed incident. Only that configured action can run. An accepted restart is not recovery: the queue must finish the report and a later independent Roundhouse health request must return 200.
-5. Inspect the completed report, health observations, event stream, and incident history. The audit records inspection, approval, a single action claim, action outcome, and independent verification. A duplicate or stale approval is rejected.
-6. Select **Reset reports** and confirm. This resumes the worker and clears only report rows. Incident history, spending reservations, and recovery claims remain. If an incident is pending, a later healthy probe resolves it. Another drill is blocked until the active incident resolves.
+1. Name your workspace. The hosted version creates an isolated guest tenant; standalone runs one local workspace.
+2. Name a report, choose seven or thirty days, and group by day or week. **Generate report** queues real asynchronous work.
+3. Open the completed report for its preview, totals, CSV download and SHA-256. History stays in SQLite.
+4. Open **Sales overview** for seeded revenue, daily sales and recent orders. All 165 orders are explicitly synthetic.
+5. Save the workspace name and report defaults in **Preferences**. Reload to confirm persistence. **Clear reports** removes reports, not preferences or incident history.
+
+## Optional recovery test
+
+Open **Roundhouse**, start monitoring if needed, then **Pause worker**. Rotary inspects the actual queue and requests only the configured `resume_exports` action. New workspaces execute automatically within their limits. A later independent healthy probe resolves the incident, not the recovery HTTP response.
+
+Managed **Settings → Require approval** enables a human gate. Existing initialized controllers without a saved policy retain manual behavior. The standalone `createRuntime({ requireApproval: true })` option selects manual mode for a fresh database; persisted policy wins on restart. Manual mode waits without acting until **Approve recovery**. Duplicate or stale approvals are rejected.
 
 Ordinary report generation does not trigger a failure. The injected fault is explicit and limited to synthetic state. Reset is a manual demo operation, not a production rollback or a way to reset spending allowances. Capacity is bounded to 25 report jobs. Reset reports when that limit is reached.
 
@@ -50,7 +55,7 @@ After preparation:
 bun run --cwd examples/reportroom test
 ```
 
-The suite uses actual workerd and SQLite, not a mocked Roundhouse implementation. It checks report calculations and hashes, different periods, route/body/auth rejection, queued work during failure, zero unapproved recovery, durable pending approval across a full runtime restart, one recovery claim, HTTP acceptance preceding health, later independent resolution, retained audit/budgets after reset, and no token exposure to the browser API. Live-provider mode is not used by the suite. Missing live credentials fail explicitly rather than falling back to fixtures.
+The suite uses actual workerd and SQLite. It checks onboarding preferences and reopen persistence, daily/weekly calculations, exact CSVs and hashes, report history/detail, legacy migration, route/body/auth rejection, and durable explicit-approval recovery. `platform/policy.test.js` additionally covers automatic recovery, manual mode, legacy policy migration and independent verification. `platform/reporting.test.js` covers the authenticated SaaS journey and tenant isolation. Live-provider mode is not used by the suite. Missing live credentials fail rather than falling back to fixtures.
 
 The integration test starts its own loopback HTTP server and temporary database, then disposes both. It does not interact with the web demo's `.data` directory. To verify the UI, also exercise the steps above in a browser; a build or unit-test pass alone does not establish rendered behavior.
 

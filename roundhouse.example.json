@@ -40,7 +40,7 @@
           "description": "Restart the application's background worker. Does not alter stored data.",
           "url": "https://ops.example.com/worker/restart",
           "token_env": "ROUNDHOUSE_RECOVERY_TOKEN",
-          "auto_approve": false
+          "auto_approve": true
         }
       ]
     }

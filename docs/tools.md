@@ -6,7 +6,7 @@ For prerequisites, archive consumption, bindings, and start/stop operations, fol
 
 ## Configured tools
 
-Each monitor accepts up to 32 `tools`. A tool has `name`, `description`, `input_schema`, `adapter`, `effect`, and host-only `options`. Names must be unique and cannot replace `inspect_system` or `request_recovery`. The schema subset supports closed objects, required properties, bounded strings and arrays, enums, booleans, numbers, and integers. Unsupported keywords fail validation instead of silently weakening a schema.
+Each monitor accepts up to 32 `tools`. A tool has `name`, `description`, `input_schema`, `adapter`, `effect`, host-only `options`, and optional boolean `auto_approve`. Names must be unique and cannot replace `inspect_system` or `request_recovery`. The schema subset supports closed objects, required properties, bounded strings and arrays, enums, booleans, numbers, and integers. Unsupported keywords fail validation instead of silently weakening a schema.
 
 For example, add these tools to a monitor:
 
@@ -47,7 +47,7 @@ The default adapters are:
 - `virtual_shell` (`sandbox`): `{command}`. The JavaScript `just-bash` interpreter supports pipelines, variables, loops, text processing, and file operations. It has no native processes, network, host filesystem, provider credentials, JS evaluation, or Python runtime. Unsupported commands fail. This is not SSH and does not promise full Bash or POSIX compatibility.
 - `workspace_history` (`read`): `{}`. Returns the current virtual revision and retained history.
 - `workspace_restore` (`sandbox`): `{revision,expected}`. Restores a retained virtual version only if `expected` matches the current head. Restoration creates a new version and rejects stale heads.
-- `remote_exec` (`privileged`): `{command}`. Sends a digest-approved command to the fixed `options.url` using the host-only `EXECUTOR_TOKEN` binding and an invocation idempotency key. HTTPS is required except explicitly configured loopback test endpoints. A redirect is not followed. Configure a separate executor per authority scope. This adapter never falls back to native execution inside Workers.
+- `remote_exec` (`privileged`): `{command}`. Sends an authorized command to the fixed `options.url` using the host-only `EXECUTOR_TOKEN` binding and an invocation idempotency key. HTTPS is required except explicitly configured loopback test endpoints. A redirect is not followed. Configure a separate executor per authority scope. This adapter never falls back to native execution inside Workers.
 
 Virtual shell limits include two seconds, 256 commands, 8 KiB output, 128 retained file entries, 128 KiB persisted file data, and 64 immutable versions per monitor. Only `/workspace` persists. Nonzero commands discard all staged file changes. Reaching the version quota fails closed. Export retained evidence and provision a fresh workspace rather than deleting authority history to bypass a limit.
 
@@ -55,11 +55,13 @@ Trusted Worker code can extend `defaultTools()` with `ToolRegistry.register({id,
 
 ## Approval and audit
 
-Ordinary reads and virtual edits do not require approval. Registered privileged calls always require explicit operator approval, including test and staging. They share the daily action limit and one-forward-action-per-incident guard with legacy recovery actions.
+Ordinary reads and virtual edits do not require approval. A registered privileged tool with `auto_approve: true` executes without human approval in any environment, including production. Omitted or false preserves manual approval. This host-only policy does not change the tool's adapter, arguments, destination, or credentials. Both policies share the daily action limit and one-forward-action-per-incident guard with legacy recovery actions.
+
+Automatic calls persist a digest-bound invocation as `authorized` and audit `invocation_authorized`, then claim and execute it. They do not create a pending human approval or audit an operator approval. Manual calls persist as `pending` and audit `invocation_pending`.
 
 `GET /v1/invocations` returns exact persisted arguments, a digest binding the incident, configuration, tool, and arguments, expiry, state, and outcome. `POST /v1/invocations/{id}/approve` accepts only `{"digest":"…"}`. The operator reviews the concrete command before approval. The existing name-only action approval route cannot approve a registered invocation.
 
-Approval expires after one hour. Configuration changes, repeated approval, mismatched digest, and consumed authority fail closed. The host executes the stored call directly, without another model request. It claims authority and spending allowance before I/O. A crash or timeout leaves `unknown`, never automatic replay. Check the executor's durable idempotency journal before reconciling an unknown outcome. A successful tool response is not recovery: the independent configured health probe must succeed.
+Invocation authority expires after one hour. Configuration changes, repeated approval, mismatched digest, and consumed authority fail closed. The host executes the stored call directly, without another model request. It claims authority and spending allowance before I/O. A crash or timeout after the claim leaves `unknown`, never automatic replay. Check the executor's durable idempotency journal before reconciling an unknown outcome. A successful tool response is not recovery: the independent configured health probe must succeed.
 
 Audit records contain scrubbed claims, results, failures, and verification observations. Known binding secrets and common credential patterns are redacted. Credential-bearing model arguments are rejected before persistence. This is not a guarantee that arbitrary unknown secrets or personal data are removed. Never put secrets in configured URLs, descriptions, options, virtual files, or commands.
 

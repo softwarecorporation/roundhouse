@@ -35,13 +35,14 @@ export async function createDemo(options = {}) {
     return response.json();
   }
   async function mutate(path, body) {
+    if (path === "/api/workspace") return appMutation("/workspace", body);
     if (path === "/api/reports") {
-      if (Object.keys(body).length !== 1 || ![7, 30].includes(body.period)) throw new HttpError(400, "Choose a 7-day or 30-day report.");
       const job = await appMutation("/reports", body);
       await capture("report.queued", { period: body.period });
       return job;
     }
     if (Object.keys(body).length) throw new HttpError(400, "This demo operation takes no arguments.");
+    if (path === "/api/monitor/start") return runtime.json("/v1/start", {});
     if (path === "/api/fault") {
       const state = await snapshot();
       if (!state.capabilities.fault_allowed) throw new HttpError(409, "Wait for the current incident to resolve before starting another drill.");
@@ -76,8 +77,11 @@ export async function createDemo(options = {}) {
     const path = new URL(request.url).pathname;
     try {
       if (request.method === "GET" && path === "/api/state") return Response.json(await snapshot());
+      if (request.method === "GET" && path === "/api/workspace") return runtime.request("/workspace", undefined, { app: true });
       const csv = path.match(/^\/api\/reports\/([a-zA-Z0-9_-]+)\.csv$/);
       if (request.method === "GET" && csv) return runtime.request(`/reports/${csv[1]}.csv`, undefined, { app: true });
+      const report = path.match(/^\/api\/reports\/([a-f0-9-]{36})$/);
+      if (request.method === "GET" && report) return runtime.request(`/reports/${report[1]}`, undefined, { app: true });
       if (request.method === "POST") {
         // This non-safelisted header plus no CORS prevents cross-site forms/fetches.
         // It is not authentication: this isolated single-user demo has no customer accounts.
@@ -92,7 +96,7 @@ export async function createDemo(options = {}) {
         mutation = next.catch(() => {});
         return Response.json(await next);
       }
-      const assets = { "/": "index.html", "/app.js": "app.js", "/style.css": "style.css" };
+      const assets = { "/": "index.html", "/app.js": "app.js", "/style.css": "style.css", "/archivo.ttf": "archivo.ttf" };
       if (request.method === "GET" && Object.hasOwn(assets, path)) return new Response(Bun.file(resolve(import.meta.dir, "public", assets[path])));
       throw new HttpError(404, "Demo route not found.");
     } catch (error) {

@@ -21,7 +21,7 @@ test("real SaaS HTTP flow: export, detected failure, approval across restart, ac
   const scratch = resolve(import.meta.dir, "../../../.amp/in/orb-backup");
   await mkdir(scratch, { recursive: true });
   const persistence = await mkdtemp(resolve(scratch, "reportroom-integration-"));
-  let demo = await createDemo({ persistence });
+  let demo = await createDemo({ persistence, requireApproval: true });
   let server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: demo.fetch });
   async function api(path, body, expected = 200, headers = {}) {
     const response = await fetch(new URL(path, server.url), {
@@ -73,7 +73,7 @@ test("real SaaS HTTP flow: export, detected failure, approval across restart, ac
 
     server.stop(true);
     await demo.close();
-    demo = await createDemo({ persistence });
+    demo = await createDemo({ persistence, requireApproval: true });
     server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: demo.fetch });
     const restored = await state();
     expect(restored.monitoring.incidents[0].id).toBe(incident.id);

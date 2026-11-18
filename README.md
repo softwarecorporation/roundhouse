@@ -1,18 +1,22 @@
 # Roundhouse
 
+Roundhouse by Software Corp.
+
+<img src="platform/public/roundhouse.svg" width="72" height="72" alt="Drawn railway roundhouse">
+
 Always-on agentic operations built on [Rotary](https://github.com/tschk/rotary). Roundhouse watches configured HTTP health endpoints, investigates failures with your model, and executes configured tools within explicit authority. Only independent health checks can resolve an incident.
 
 Run it as a Cloudflare Worker with SQLite Durable Objects, or on a Linux server with persistent storage and a supervisor. No laptop, interactive agent session, Docker daemon, or desktop connection is required.
 
-The [managed platform](platform/README.md) adds a tenant-aware console, scoped MCP access, D1 analytics and logs, and public status pages. Its first control target is isolated synthetic Reportroom, not arbitrary customer production systems. The core remains free to self-manage. Cloudflare infrastructure and optional model usage can incur charges.
+The [managed platform](platform/README.md) adds multi-app onboarding, configurable HTTP automations, scoped MCP access, investigation history, D1 analytics and logs, and public status pages. Reportroom is its isolated example app. Owners connect public HTTPS systems with exact diagnostic and recovery endpoints. The core remains free to self-manage. Cloudflare infrastructure and optional model usage can incur charges.
 
 - **[Open Roundhouse](https://roundhouse.tsc.hk)**: landing page and authenticated console.
-- **[Open Reportroom](https://reportroom.roundhouse.tsc.hk)**: generate real CSV reports, pause the synthetic worker, approve recovery, and inspect the result.
+- **[Open Reportroom](https://reportroom.roundhouse.tsc.hk)**: create a workspace, configure sales reports, preview and download real CSVs.
 - **[Set up your own deployment](platform/README.md)** or use the existing [API-first runtime](docs/setup.md).
 
 ## Try the standalone SaaS demo
 
-[Reportroom](examples/reportroom/README.md) is a small reporting SaaS with a usable web UI, real queued CSV exports, and synthetic shop data. Inject a worker failure, watch Roundhouse investigate, approve its scoped recovery, then inspect the independently verified result and durable incident history. The default deterministic provider needs no paid credentials or Facetime checkout. Optional live-provider mode is separate.
+[Reportroom](examples/reportroom/README.md) has isolated demo onboarding, synthetic shop orders, daily/weekly asynchronous reports, history, previews, downloads and saved preferences. Its optional Roundhouse view demonstrates recovery without making a drill part of normal reporting. New workspaces recover automatically within configured permissions. Enable **Require approval** in Settings for a human gate; existing explicit approval policies stay enabled. Fixture mode needs no paid credentials. Live-provider mode is separate.
 
 ## Choose a runtime
 
@@ -37,8 +41,8 @@ Reads, incoming notifications, and forwarding are distinct. There is no automati
 - Native: Rotary's actual agent loop, provider clients, scope filtering, tool registry, and permission gates. Workers: Rotary's lite agent, shared permissions, and redaction.
 - Native exposes `inspect_system` and `request_recovery`. Workers adds a [configured operations catalog](docs/tools.md) with restricted HTTPS fetch, virtual Bash and files, versioned restore, and approved calls to an independent Linux executor. Neither host exposes unrestricted MCP or subagents.
 - Separate event and operator credentials. Event credentials cannot read incident history or authorize recovery.
-- Production recovery requires a single-use approval for the exact incident and named action. Configuration rejects production auto-approval.
-- Registered privileged tools require digest-bound approval in every environment. Native Bash and optional real SSH live in the separate executor, never inside Workers. Its offline rollback restores workspace files independently of the controller and model.
+- Configured actions execute automatically with explicit `auto_approve: true`, including production. Omitted or false preserves exact, single-use incident approval. New managed workspaces default automatic; Settings can require approval.
+- Registered privileged tools use a separate explicit automatic policy or digest-bound approval. Native Bash and optional real SSH live in the separate executor, never inside Workers. Its offline rollback restores workspace files independently of the controller and model.
 - Persistent daily request and action limits, per-incident request limits, a request-reservation budget, context size limits, and investigation deadlines.
 - One action attempt per incident, committed before network I/O. Unknown outcomes and interrupted investigations require operator reconciliation, not blind retries.
 - A real-model demo against an isolated HTTP application, plus credential-free end-to-end failure tests.

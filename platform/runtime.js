@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 export async function createRuntime({ port, origin = 'https://roundhouse.test', demoOrigin = 'https://reportroom.roundhouse.test',
-  invite = 'local-test-invitation', persistence = false, key, providerTransport = fetch } = {}) {
+  invite = 'local-test-invitation', persistence = false, key, providerTransport = fetch, applicationTransport, appSecrets } = {}) {
   const root = fileURLToPath(new URL('.', import.meta.url));
   const bundle = root + '.cloudflare/output/v1/workers/default/bundle/';
   const mf = new Miniflare({ port, ...(port ? { upstream: origin } : {}), modulesRoot: bundle,
@@ -13,17 +13,21 @@ export async function createRuntime({ port, origin = 'https://roundhouse.test', 
     durableObjects: { CONTROLLERS: { className: 'TenantController', useSQLite: true }, REPORTS: { className: 'ReportApplication', useSQLite: true } },
     d1Databases: ['DB'], d1Persist: persistence, durableObjectsPersist: persistence,
     bindings: { PUBLIC_ORIGIN: origin, DEMO_ORIGIN: demoOrigin, SETUP_INVITE: invite,
-      ...(origin.endsWith('.test') ? { SESSION_COOKIE_DOMAIN: 'roundhouse.test' } : {}), APPLICATION_TOKEN: 'internal-reportroom', ...(key ? { ANTHROPIC_API_KEY: key } : {}) },
+      ...(origin.endsWith('.test') ? { SESSION_COOKIE_DOMAIN: 'roundhouse.test' } : {}), APPLICATION_TOKEN: 'internal-reportroom',
+      ...(appSecrets ? { APP_SECRETS_JSON: JSON.stringify(appSecrets) } : {}), ...(key ? { ANTHROPIC_API_KEY: key } : {}) },
     serviceBindings: { ASSETS: async request => {
       const path = new URL(request.url).pathname;
       if (!/^\/[a-zA-Z0-9/._-]+$/.test(path) || path.includes('..')) return new Response(null, { status: 404 });
       try { return new Response(await readFile(root + '.cloudflare/output/v1/workers/default/assets' + path), { headers: {
-        'content-type': path.endsWith('.html') ? 'text/html; charset=utf-8' : path.endsWith('.css') ? 'text/css' : 'text/javascript' } }); }
+        'content-type': path.endsWith('.html') ? 'text/html; charset=utf-8' : path.endsWith('.css') ? 'text/css'
+          : path.endsWith('.svg') ? 'image/svg+xml' : path.endsWith('.ttf') ? 'font/ttf' : 'text/javascript' } }); }
       catch { return new Response(null, { status: 404 }); }
     } },
     outboundService: async request => {
-      if (!key || request.url !== 'https://api.anthropic.com/v1/messages' || request.method !== 'POST') throw new Error('External egress denied');
-      return providerTransport(request.url, { method: request.method, headers: request.headers, body: await request.arrayBuffer(), redirect: 'error', signal: request.signal });
+      const init = { method: request.method, headers: request.headers, ...(request.method === 'POST' ? { body: await request.text() } : {}), redirect: 'manual', signal: request.signal };
+      if (key && request.url === 'https://api.anthropic.com/v1/messages' && request.method === 'POST') return providerTransport(request.url, { ...init, redirect: 'error' });
+      if (applicationTransport) return applicationTransport(request.url, init);
+      throw new Error('External egress denied');
     },
   });
   try {

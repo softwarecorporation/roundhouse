@@ -6,6 +6,13 @@ const ALARM_DELAY = 1000;
 const FIRST_DAY = Date.UTC(2026, 0, 1);
 const DAY = 86400000;
 const JOB_FIELDS = "id,period,state,created_at,completed_at,sha256,rows,order_count,revenue_cents";
+const REPORT_FIELDS = `${JOB_FIELDS},title,group_by`;
+const PREVIEW_ROWS = 10;
+
+function safeText(value) {
+  return typeof value === "string" && value.length >= 1 && value.length <= 80
+    && value === value.trim() && !/[\p{Cc}\p{Cf}<>]/u.test(value);
+}
 
 function error(message, status) {
   return Response.json({ error: message }, { status });
@@ -52,6 +59,9 @@ export class ReportApplication extends DurableObject {
         completed_at TEXT,sha256 TEXT,rows INTEGER,order_count INTEGER,revenue_cents INTEGER,csv TEXT
       );
     `);
+    const columns = ctx.storage.sql.exec("PRAGMA table_info(jobs)").toArray().map(column => column.name);
+    if (!columns.includes("title")) ctx.storage.sql.exec("ALTER TABLE jobs ADD COLUMN title TEXT NOT NULL DEFAULT 'Sales report'");
+    if (!columns.includes("group_by")) ctx.storage.sql.exec("ALTER TABLE jobs ADD COLUMN group_by TEXT NOT NULL DEFAULT 'day'");
     ctx.storage.transactionSync(() => {
       if (this.value("initialized")) return;
       let id = 1;
@@ -73,6 +83,21 @@ export class ReportApplication extends DurableObject {
   value(key) { return this.ctx.storage.sql.exec("SELECT value FROM settings WHERE key=?", key).toArray()[0]?.value; }
   put(key, value) { this.ctx.storage.sql.exec("INSERT OR REPLACE INTO settings VALUES(?,?)", key, String(value)); }
   jobs() { return this.ctx.storage.sql.exec(`SELECT ${JOB_FIELDS} FROM jobs ORDER BY created_at,id`).toArray(); }
+  preferences() {
+    const stored = this.value("preferences");
+    return stored ? JSON.parse(stored) : { name: "My workspace", default_period: 30, default_group_by: "day", onboarded: false };
+  }
+  workspace() {
+    const totals = this.ctx.storage.sql.exec("SELECT COUNT(*) AS orders,SUM(revenue_cents) AS revenue_cents FROM orders").toArray()[0];
+    return {
+      preferences: this.preferences(),
+      dataset: { name: "Demo store sales", currency: "USD", from: "2026-01-01", to: "2026-01-30", synthetic: true },
+      overview: { ...totals, average_order_cents: Math.round(totals.revenue_cents / totals.orders) },
+      daily: this.ctx.storage.sql.exec("SELECT day,COUNT(*) AS order_count,SUM(revenue_cents) AS revenue_cents FROM orders GROUP BY day ORDER BY day").toArray(),
+      recent_orders: this.ctx.storage.sql.exec("SELECT id,day,revenue_cents FROM orders ORDER BY day DESC,id DESC LIMIT 10").toArray(),
+      reports: this.ctx.storage.sql.exec(`SELECT ${REPORT_FIELDS} FROM jobs ORDER BY created_at DESC,id DESC`).toArray(),
+    };
+  }
   status() {
     const jobs = this.jobs();
     const running = this.value("running") === "1";
@@ -86,9 +111,9 @@ export class ReportApplication extends DurableObject {
       jobs,
     };
   }
-  queue(period) {
+  queue(period, title = "Sales report", groupBy = "day") {
     const id = crypto.randomUUID();
-    this.ctx.storage.sql.exec("INSERT INTO jobs(id,period,state,created_at) VALUES(?,?,'queued',?)", id, period, new Date().toISOString());
+    this.ctx.storage.sql.exec("INSERT INTO jobs(id,period,state,created_at,title,group_by) VALUES(?,?,'queued',?,?,?)", id, period, new Date().toISOString(), title, groupBy);
     return this.ctx.storage.sql.exec(`SELECT ${JOB_FIELDS} FROM jobs WHERE id=?`, id).toArray()[0];
   }
 
@@ -105,10 +130,12 @@ export class ReportApplication extends DurableObject {
     }
     if (url.search) return error("query parameters not allowed", 400);
     const download = /^\/reports\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.csv$/.exec(url.pathname);
-    const method = ["/health", "/status"].includes(url.pathname) || download ? "GET"
+    const detail = /^\/reports\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/.exec(url.pathname);
+    const method = url.pathname === "/workspace" ? (request.method === "POST" ? "POST" : "GET")
+      : ["/health", "/status"].includes(url.pathname) || download || detail ? "GET"
       : ["/reports", "/fault", "/recover", "/reset"].includes(url.pathname) ? "POST" : null;
     if (!method) return error("not found", 404);
-    if (request.method !== method) return new Response(null, { status: 405, headers: { Allow: method } });
+    if (request.method !== method) return new Response(null, { status: 405, headers: { Allow: url.pathname === "/workspace" ? "GET, POST" : method } });
     if (method === "GET") {
       if (request.body) return error("body not allowed", 400);
       if (url.pathname === "/health") {
@@ -116,6 +143,20 @@ export class ReportApplication extends DurableObject {
         return Response.json({ healthy }, { status: healthy ? 200 : 503 });
       }
       if (url.pathname === "/status") return Response.json(this.status());
+      if (url.pathname === "/workspace") return Response.json(this.workspace());
+      if (detail) {
+        const job = this.ctx.storage.sql.exec(`SELECT ${REPORT_FIELDS},csv FROM jobs WHERE id=?`, detail[1]).toArray()[0];
+        if (!job) return error("report not found", 404);
+        const { csv, ...metadata } = job;
+        const lines = job.state === "completed" ? csv.trimEnd().split("\n") : [];
+        const columns = lines.length ? lines[0].split(",") : [];
+        const rows = lines.slice(1, PREVIEW_ROWS + 1).map(line => {
+          const values = line.split(",");
+          return Object.fromEntries(columns.map((column, index) => [column, index === 0 ? values[index] : Number(values[index])]));
+        });
+        return Response.json({ ...metadata, preview: { columns, rows, truncated: job.rows > PREVIEW_ROWS },
+          download_url: job.state === "completed" ? `/reports/${job.id}.csv` : null });
+      }
       const job = this.ctx.storage.sql.exec("SELECT state,csv FROM jobs WHERE id=?", download[1]).toArray()[0];
       if (!job) return error("report not found", 404);
       if (job.state !== "completed") return error("report not completed", 409);
@@ -129,10 +170,22 @@ export class ReportApplication extends DurableObject {
     try { body = await jsonBody(request); }
     catch (response) { if (response instanceof Response) return response; throw response; }
     const keys = Object.keys(body);
+    if (url.pathname === "/workspace") {
+      if (keys.length !== 4 || keys.some(key => !["name", "default_period", "default_group_by", "onboarded"].includes(key))
+        || !safeText(body.name) || ![7, 30].includes(body.default_period)
+        || !["day", "week"].includes(body.default_group_by) || typeof body.onboarded !== "boolean") {
+        return error("full valid workspace preferences required", 400);
+      }
+      this.put("preferences", JSON.stringify(body));
+      return Response.json({ preferences: this.preferences() });
+    }
     if (url.pathname === "/reports") {
-      if (keys.length !== 1 || keys[0] !== "period" || ![7, 30].includes(body.period)) return error("period must be 7 or 30", 400);
+      if (keys.some(key => !["period", "title", "group_by"].includes(key)) || ![7, 30].includes(body.period)
+        || ("title" in body && !safeText(body.title)) || ("group_by" in body && !["day", "week"].includes(body.group_by))) {
+        return error("period must be 7 or 30; optional valid title and day/week group_by required", 400);
+      }
       if (this.jobs().length >= MAX_JOBS) return error("report limit reached; reset demo reports", 409);
-      const job = this.queue(body.period);
+      const job = this.queue(body.period, body.title, body.group_by);
       if (this.value("running") === "1") await this.ctx.storage.setAlarm(Date.now() + ALARM_DELAY);
       return Response.json(job, { status: 202 });
     }
@@ -179,11 +232,24 @@ export class ReportApplication extends DurableObject {
 
   async alarm() {
     if (this.value("running") !== "1") return;
-    for (const job of this.ctx.storage.sql.exec("SELECT id,period FROM jobs WHERE state='queued'").toArray()) {
+    for (const job of this.ctx.storage.sql.exec("SELECT id,period,group_by FROM jobs WHERE state='queued'").toArray()) {
       const since = new Date(FIRST_DAY + (30 - job.period) * DAY).toISOString().slice(0, 10);
-      const days = this.ctx.storage.sql.exec(`SELECT day,COUNT(*) AS order_count,SUM(revenue_cents) AS revenue_cents
+      let days = this.ctx.storage.sql.exec(`SELECT day,COUNT(*) AS order_count,SUM(revenue_cents) AS revenue_cents
         FROM orders WHERE day>=? GROUP BY day ORDER BY day`, since).toArray();
-      const csv = "date,order_count,revenue_cents\n" + days.map(day => `${day.day},${day.order_count},${day.revenue_cents}\n`).join("");
+      if (job.group_by === "week") {
+        const weeks = new Map();
+        for (const day of days) {
+          const date = new Date(`${day.day}T00:00:00Z`);
+          const monday = new Date(date.getTime() - ((date.getUTCDay() + 6) % 7) * DAY).toISOString().slice(0, 10);
+          const week = weeks.get(monday) ?? { day: monday, order_count: 0, revenue_cents: 0 };
+          week.order_count += day.order_count;
+          week.revenue_cents += day.revenue_cents;
+          weeks.set(monday, week);
+        }
+        days = [...weeks.values()];
+      }
+      const csv = `${job.group_by === "week" ? "week_start" : "date"},order_count,revenue_cents\n`
+        + days.map(day => `${day.day},${day.order_count},${day.revenue_cents}\n`).join("");
       const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(csv));
       const sha256 = Array.from(new Uint8Array(digest), x => x.toString(16).padStart(2, "0")).join("");
       if (this.value("running") !== "1") return;

@@ -138,9 +138,6 @@ impl Config {
                 if a.name.is_empty() || !names.insert(&a.name) {
                     return Err("invalid or duplicate action".into());
                 }
-                if m.environment == Environment::Production && a.auto_approve {
-                    return Err("production actions cannot be auto-approved".into());
-                }
                 validate_url(&a.url)?;
                 if let Some(e) = &a.token_env {
                     secret(e)?;

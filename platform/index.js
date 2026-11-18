@@ -11,9 +11,10 @@ async function read(response) {
   if (!response.ok) throw new AuthError(response.status, 'Operation rejected');
   return response.json();
 }
-function call(env, principal, path, body) {
+function call(env, principal, path, body, idempotencyKey = crypto.randomUUID()) {
   return controller(env, principal).fetch(new Request('https://controller.internal' + path, {
-    method: body === undefined ? 'GET' : 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': crypto.randomUUID(), 'x-tenant-kind': principal.role },
+    method: body === undefined ? 'GET' : 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey,
+      'x-tenant-kind': principal.role, 'x-tenant-id': principal.tenant_id },
     body: body === undefined ? undefined : JSON.stringify(body) }));
 }
 function app(env, principal, path, body) {
@@ -39,27 +40,41 @@ async function body(request) {
   return value;
 }
 async function snapshot(env, principal) {
-  const [target, status, list, probes, provider, data, keys, tenant] = await Promise.all([
+  const [target, status, list, probes, provider, data, keys, tenant, policy, applications] = await Promise.all([
     read(await app(env, principal, '/status')), read(await call(env, principal, '/v1/status')),
     read(await call(env, principal, '/v1/incidents')), read(await call(env, principal, '/v1/probes?service=reportroom')),
     read(await call(env, principal, '/platform/provider')), summary(env, principal.tenant_id),
     env.DB.prepare('SELECT hash,name,scopes,revoked,created_at,expires FROM api_keys WHERE tenant_id=?').bind(principal.tenant_id).all(),
     env.DB.prepare('SELECT id,name,kind FROM tenants WHERE id=?').bind(principal.tenant_id).first(),
+    read(await call(env, principal, '/platform/policy')),
+    read(await call(env, principal, '/platform/apps')),
   ]);
   const incidents = await Promise.all(list.incidents.slice(0, 10).map(async i => ({ ...i,
     history: (await read(await call(env, principal, `/v1/incidents/${i.id}`))).history })));
-  return { tenant, app: target, provider, limits, keys: keys.results.map(k => ({ ...k, scopes: JSON.parse(k.scopes), created_at: k.created_at * 1000, expires: k.expires ? k.expires * 1000 : null })),
+  return { tenant, app: target, apps: applications.apps, provider, policy, limits, keys: keys.results.map(k => ({ ...k, scopes: JSON.parse(k.scopes), created_at: k.created_at * 1000, expires: k.expires ? k.expires * 1000 : null })),
     monitoring: { enabled: status.enabled, incidents, probes: probes.observations, budgets: status.budgets, events: [] },
     ...data, capabilities: { fault_allowed: target.healthy && !list.incidents.some(i => i.state !== 'resolved'), reset_allowed: true } };
 }
+async function appSnapshot(env, principal, id) {
+  const [applications, status, list, probes] = await Promise.all([
+    read(await call(env, principal, '/platform/apps')), read(await call(env, principal, '/v1/status')),
+    read(await call(env, principal, '/v1/incidents')), read(await call(env, principal, `/v1/probes?service=${encodeURIComponent(id)}`)),
+  ]);
+  const application = applications.apps.find(a => a.id === id);
+  if (!application) throw new AuthError(404, 'App not found');
+  const incidents = await Promise.all(list.incidents.filter(i => i.monitor === id).slice(0, 20).map(async i => ({ ...i,
+    history: (await read(await call(env, principal, `/v1/incidents/${i.id}`))).history })));
+  return { app: application, monitoring: { enabled: status.enabled, incidents, probes: probes.observations, budgets: status.budgets }, limits };
+}
 const tools = [
-  ['systems', 'Read synthetic application status and monitoring limits.', 'read'],
+  ['apps', 'List configured apps and automation policies.', 'read'],
+  ['systems', 'Read app status and monitoring limits. Optional app_id selects one app.', 'read'],
   ['incidents', 'Read recent incidents and investigation history.', 'read'],
   ['analytics', 'Read last 24 hours of tenant analytics.', 'read'],
   ['logs', 'Read recent tenant logs.', 'read'],
   ['start_monitoring', 'Start scheduled health checks.', 'control'],
   ['stop_monitoring', 'Stop scheduled health checks.', 'control'],
-  ['investigate', 'Queue a bounded investigation of the synthetic Reportroom application. Cannot approve recovery.', 'control'],
+  ['investigate', 'Trigger bounded investigation of a configured app. Cannot change authority or approve.', 'control'],
 ];
 async function mcp(request, env, principal) {
   if (principal.kind !== 'key') throw new AuthError(403, 'MCP requires a scoped bearer key');
@@ -71,17 +86,23 @@ async function mcp(request, env, principal) {
   if (input.method === 'initialize') return reply({ protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'roundhouse', version: '0.1.0' } });
   if (input.method === 'ping') return reply({});
   if (input.method === 'tools/list') return reply({ tools: tools.filter(t => principal.scopes.includes(t[2])).map(([name, description]) => ({ name, description,
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false } })) });
+    inputSchema: { type: 'object', properties: ['systems', 'incidents', 'investigate'].includes(name) ? { app_id: { type: 'string', maxLength: 64 } } : {}, additionalProperties: false } })) });
   if (input.method !== 'tools/call') return reply(null, { code: -32601, message: 'Method not found' });
   const tool = tools.find(t => t[0] === input.params?.name);
   if (!tool) return reply(null, { code: -32602, message: 'Unknown tool' });
   requireScope(principal, tool[2]);
   const args = input.params.arguments ?? {};
-  if (!args || Array.isArray(args) || typeof args !== 'object' || Object.keys(args).length) return reply(null, { code: -32602, message: 'Tool takes no arguments' });
+  const acceptsApp = ['systems', 'incidents', 'investigate'].includes(tool[0]);
+  if (!args || Array.isArray(args) || typeof args !== 'object' || Object.keys(args).some(k => k !== 'app_id' || !acceptsApp)
+    || ('app_id' in args && (typeof args.app_id !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(args.app_id)))) return reply(null, { code: -32602, message: 'Invalid tool arguments' });
   let result;
-  if (['systems', 'incidents'].includes(tool[0])) result = await snapshot(env, principal);
+  if (tool[0] === 'apps') result = await read(await call(env, principal, '/platform/apps'));
+  else if (['systems', 'incidents'].includes(tool[0])) result = args.app_id ? await appSnapshot(env, principal, args.app_id) : await snapshot(env, principal);
   else if (['analytics', 'logs'].includes(tool[0])) result = await read(await dataRoute(new Request(`https://data.internal/api/${tool[0]}`), env, principal));
-  else result = await read(await call(env, principal, tool[0] === 'investigate' ? '/v1/events' : tool[0] === 'start_monitoring' ? '/v1/start' : '/v1/stop', tool[0] === 'investigate' ? { monitor: 'reportroom' } : {}));
+  else {
+    if (args.app_id) await appSnapshot(env, principal, args.app_id);
+    result = await read(await call(env, principal, tool[0] === 'investigate' ? '/v1/events' : tool[0] === 'start_monitoring' ? '/v1/start' : '/v1/stop', tool[0] === 'investigate' ? { monitor: args.app_id || 'reportroom' } : {}));
+  }
   return reply({ content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result, isError: false });
 }
 
@@ -111,12 +132,32 @@ async function route(request, env) {
     const data = await dataRoute(request, env, principal); if (data) return data;
     if (request.method === 'GET') {
       if (['/api/overview', '/api/state'].includes(path)) return json(await snapshot(env, principal));
+      if (path === '/api/apps') return call(env, principal, '/platform/apps');
+      const application = /^\/api\/apps\/([a-zA-Z0-9_-]{1,64})$/.exec(path);
+      if (application) return json(await appSnapshot(env, principal, application[1]));
+      const incident = /^\/api\/incidents\/([a-f0-9-]{36})$/.exec(path);
+      if (incident) return call(env, principal, `/v1/incidents/${incident[1]}`);
+      if (path === '/api/workspace') return app(env, principal, '/workspace');
+      if (path === '/api/policy') return call(env, principal, '/platform/policy');
       const csv = /^\/api\/reports\/([a-f0-9-]{36})\.csv$/.exec(path);
       if (csv) return app(env, principal, `/reports/${csv[1]}.csv`);
+      const report = /^\/api\/reports\/([a-f0-9-]{36})$/.exec(path);
+      if (report) return app(env, principal, `/reports/${report[1]}`);
       if (path === '/api/keys') return json({ keys: (await snapshot(env, principal)).keys });
     }
     if (request.method === 'POST') {
       const value = await body(request);
+      const configure = /^\/api\/apps\/([a-zA-Z0-9_-]{1,64})\/config$/.exec(path);
+      if (path === '/api/apps' || configure) {
+        if (principal.kind !== 'session' || principal.role !== 'owner') throw new AuthError(403, 'Owner session required');
+        requireScope(principal, 'admin');
+        return call(env, principal, configure ? `/platform/apps/${configure[1]}/config` : '/platform/apps', value);
+      }
+      if (path === '/api/policy') {
+        if (principal.kind !== 'session') throw new AuthError(403, 'Session required');
+        requireScope(principal, 'approve');
+        return call(env, principal, '/platform/policy', value);
+      }
       if (path === '/api/keys') return json(await issueKey(env, principal, value), 201);
       if (path === '/api/keys/revoke') { await revokeKey(env, principal, value.hash); return json({ revoked: true }); }
       const revoke = /^\/api\/keys\/([a-f0-9]{64})\/revoke$/.exec(path);
@@ -146,8 +187,16 @@ async function route(request, env) {
         return json({ engine: 'kitesurf', source: 'internal-synthetic-snapshot', content: (await rendered.text()).slice(0, 16384) });
       }
       requireScope(principal, 'control');
+      if (path === '/api/workspace') return app(env, principal, '/workspace', value);
       if (path === '/api/reports') return app(env, principal, '/reports', value);
       if (Object.keys(value).length) throw new AuthError(400, 'No arguments required');
+      const automation = /^\/api\/apps\/([a-zA-Z0-9_-]{1,64})\/(start|stop|events)$/.exec(path);
+      if (automation) {
+        const applications = await read(await call(env, principal, '/platform/apps'));
+        if (!applications.apps.some(a => a.id === automation[1])) throw new AuthError(404, 'App not found');
+        return call(env, principal, automation[2] === 'events' ? '/v1/events' : `/v1/${automation[2]}`,
+          automation[2] === 'events' ? { monitor: automation[1] } : {}, request.headers.get('idempotency-key') || crypto.randomUUID());
+      }
       const monitor = /^\/api\/monitor\/(start|stop|investigate)$/.exec(path);
       if (monitor) return call(env, principal, monitor[1] === 'investigate' ? '/v1/events' : `/v1/${monitor[1]}`, monitor[1] === 'investigate' ? { monitor: 'reportroom' } : {});
       if (['/api/demo/fault', '/api/fault'].includes(path)) {
@@ -159,17 +208,19 @@ async function route(request, env) {
       const approval = /^\/api\/incidents\/([a-f0-9-]{36})\/approve$/.exec(path);
       if (approval) {
         requireScope(principal, 'approve');
-        return call(env, principal, `/v1/incidents/${approval[1]}/approve`, { action: 'resume_exports' });
+        const list = await read(await call(env, principal, '/v1/incidents'));
+        const incident = list.incidents.find(i => i.id === approval[1]);
+        if (!incident) throw new AuthError(404, 'Incident not found');
+        const action = incident.pending_action;
+        if (typeof action !== 'string' || action.startsWith('invocation:')) throw new AuthError(409, 'No named action awaiting approval');
+        return call(env, principal, `/v1/incidents/${approval[1]}/approve`, { action });
       }
     }
     return json({ error: 'Not found' }, 404);
   }
   if (request.method !== 'GET') return json({ error: 'Not found' }, 404);
   const demo = url.origin === env.DEMO_ORIGIN && env.DEMO_ORIGIN !== env.PUBLIC_ORIGIN;
-  if (demo && path === '/') {
-    try { await authenticate(request, env); } catch { return Response.redirect(env.PUBLIC_ORIGIN + '/console?demo=1', 302); }
-  }
-  const assets = demo ? { '/': '/reportroom/index.html', '/app.js': '/reportroom/app.js', '/style.css': '/reportroom/style.css' } : { '/': '/index.html', '/console': '/console.html', '/platform.js': '/platform.js', '/platform.css': '/platform.css', '/tracker.js': '/tracker.js', '/docs/setup': '/setup.html' };
+  const assets = demo ? { '/': '/reportroom/index.html', '/app.js': '/reportroom/app.js', '/style.css': '/reportroom/style.css', '/archivo.ttf': '/reportroom/archivo.ttf', '/roundhouse.svg': '/roundhouse.svg' } : { '/': '/index.html', '/console': '/console.html', '/platform.js': '/platform.js', '/platform.css': '/platform.css', '/tracker.js': '/tracker.js', '/docs/setup': '/setup.html', '/archivo.ttf': '/archivo.ttf', '/roundhouse.svg': '/roundhouse.svg' };
   if (!Object.hasOwn(assets, path)) return json({ error: 'Not found' }, 404);
   return env.ASSETS.fetch(new Request(new URL(assets[path], env.PUBLIC_ORIGIN), request));
 }
@@ -180,6 +231,6 @@ export default { async fetch(request, env) {
   catch (error) { response = json({ error: error instanceof AuthError ? error.message : 'Service unavailable' }, error instanceof AuthError ? error.status : 503); }
   const headers = new Headers(response.headers);
   for (const [key, value] of Object.entries({ 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer',
-    'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" })) headers.set(key, value);
+    'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" })) headers.set(key, value);
   return new Response(response.body, { status: response.status, headers });
 } };

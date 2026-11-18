@@ -65,6 +65,10 @@ async function oneField(request: Request, key: string): Promise<string> {
   return field;
 }
 
+function reportedTokens(value: unknown): number | null {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
 /** One controller per deployment intentionally owns global budgets and serial investigation. */
 export class Roundhouse extends DurableObject<Env> {
   readonly config: Config;
@@ -281,12 +285,15 @@ export class Roundhouse extends DurableObject<Env> {
 
   private async executeTool(i: Incident, m: Monitor, tool: NonNullable<Monitor["tools"]>[number], args: unknown, id: string, signal: AbortSignal, privileged: boolean): Promise<unknown> {
     core.validateTool(tool, args);
+    const digest = privileged ? await invocationDigest({ id, incident: i.id, config: this.fingerprint, tool, args }) : undefined;
     this.ctx.storage.transactionSync(() => {
       const fresh = this.incident(i.id);
       if (!this.enabled() || fresh.config !== this.fingerprint || signal.aborted) throw new Error("execution stopped");
       if (privileged) {
-        const row = this.rows<{ state: string; expires: number }>("SELECT state,expires FROM invocations WHERE id=?", id)[0];
-        if (!row || row.state !== "approved" || row.expires < Date.now() || fresh.attempted) throw new Error("authority unavailable");
+        const row = this.rows<{ state: string; expires: number; incident: string; config: string; tool: string; args: string; digest: string }>("SELECT * FROM invocations WHERE id=?", id)[0];
+        if (!row || !(row.state === "approved" || row.state === "authorized" && tool.auto_approve === true)
+          || row.expires < Date.now() || fresh.attempted || row.incident !== i.id || row.config !== this.fingerprint
+          || row.tool !== tool.name || row.args !== JSON.stringify(args) || row.digest !== digest) throw new Error("authority unavailable");
         const day = new Date().toISOString().slice(0, 10);
         this.ctx.storage.sql.exec("INSERT OR IGNORE INTO daily(day) VALUES(?)", day);
         if (this.rows<{ actions: number }>("SELECT actions FROM daily WHERE day=?", day)[0].actions >= this.config.limits.daily_actions) throw new Error("action limit");
@@ -337,11 +344,30 @@ export class Roundhouse extends DurableObject<Env> {
         if (p.kind === "anthropic") { headers.set("x-api-key", this.env.PROVIDER_API_KEY); headers.set("anthropic-version", "2023-06-01"); }
         else headers.set("authorization", `Bearer ${this.env.PROVIDER_API_KEY}`);
         phase = "provider_request";
-        const response = await this.providerFetch(p.base_url.replace(/\/$/, "") + (p.kind === "anthropic" ? "/messages" : "/chat/completions"), { method: "POST", headers, body, signal, redirect: "manual" });
-        if (!response.ok) { await response.body?.cancel(); this.audit(i.id, "provider_failed", { status: response.status }); throw new Error("provider unavailable"); }
-        phase = "provider_response";
-        const value: unknown = JSON.parse(await bounded(response.body, 65536));
-        const accepted = core.accept(session, p.kind, value);
+        const started_at = Date.now(), started = performance.now();
+        let status: number | null = null, input_tokens: number | null = null, output_tokens: number | null = null;
+        let outcome: "success" | "http_error" | "invalid_response" | "timeout" | "error" = "error";
+        let accepted: ReturnType<typeof core.accept>;
+        try {
+          const response = await this.providerFetch(p.base_url.replace(/\/$/, "") + (p.kind === "anthropic" ? "/messages" : "/chat/completions"), { method: "POST", headers, body, signal, redirect: "manual" });
+          status = response.status;
+          if (!response.ok) { outcome = "http_error"; await response.body?.cancel(); this.audit(i.id, "provider_failed", { status }); throw new Error("provider unavailable"); }
+          phase = "provider_response";
+          outcome = "invalid_response";
+          const value: unknown = JSON.parse(await bounded(response.body, 65536));
+          const usage: unknown = value && typeof value === "object" && "usage" in value ? value.usage : null;
+          if (usage && typeof usage === "object" && !Array.isArray(usage)) {
+            input_tokens = reportedTokens(Reflect.get(usage, p.kind === "anthropic" ? "input_tokens" : "prompt_tokens"));
+            output_tokens = reportedTokens(Reflect.get(usage, p.kind === "anthropic" ? "output_tokens" : "completion_tokens"));
+          }
+          accepted = core.accept(session, p.kind, value);
+          outcome = "success";
+        } catch (error) {
+          if (signal.aborted) outcome = "timeout";
+          throw error;
+        } finally {
+          this.audit(i.id, "provider_call", { provider: p.kind, model: p.model, started_at, duration_ms: Math.max(0, Math.round(performance.now() - started)), status, outcome, usage: { input: input_tokens, output: output_tokens } });
+        }
         session = accepted.session;
         this.audit(i.id, "investigation", { text: accepted.reply.text });
         phase = "tool_decision";
@@ -359,12 +385,15 @@ export class Roundhouse extends DurableObject<Env> {
             if (tool.effect === "privileged") {
               const id = crypto.randomUUID();
               const digest = await invocationDigest({ id, incident: i.id, config: this.fingerprint, tool, args: call.arguments });
+              const automatic = tool.auto_approve === true;
               this.ctx.storage.transactionSync(() => {
-                if (this.incident(i.id).attempted) throw new Error("action already attempted");
-                this.ctx.storage.sql.exec("INSERT INTO invocations VALUES(?,?,?,?,?,?,'pending',?,NULL)", id, i.id, tool.name, JSON.stringify(call.arguments), digest, this.fingerprint, Date.now() + 3600000);
-                this.ctx.storage.sql.exec("UPDATE incidents SET pending_action=? WHERE id=?", `invocation:${id}`, i.id);
-                this.audit(i.id, "invocation_pending", { id, digest, tool: tool.name, args: call.arguments });
+                const fresh = this.incident(i.id);
+                if (!this.enabled() || fresh.config !== this.fingerprint || signal.aborted || fresh.attempted) throw new Error("authority unavailable");
+                this.ctx.storage.sql.exec("INSERT INTO invocations VALUES(?,?,?,?,?,?,?,?,NULL)", id, i.id, tool.name, JSON.stringify(call.arguments), digest, this.fingerprint, automatic ? "authorized" : "pending", Date.now() + 3600000);
+                if (!automatic) this.ctx.storage.sql.exec("UPDATE incidents SET pending_action=? WHERE id=?", `invocation:${id}`, i.id);
+                this.audit(i.id, automatic ? "invocation_authorized" : "invocation_pending", { id, digest, tool: tool.name, args: call.arguments });
               });
+              if (automatic) await this.executeTool(i, m, tool, call.arguments, id, signal, true);
               stop = true; break;
             }
             try {

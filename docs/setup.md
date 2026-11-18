@@ -119,7 +119,7 @@ These are HTTP operations against your explicitly authorized deployment, not she
 7. Check the independent health probe and persisted outcome. HTTP 202 or a successful tool return is not recovery. The incident resolves only after a successful probe.
 8. To disable future checks, send operator-authenticated `POST /v1/stop` with `{}`. Expect `enabled: false`. Check `in_flight` and reconcile any already claimed action instead of assuming stop cancelled external work.
 
-Registered privileged tools require approval in every environment. Legacy production actions cannot be auto-approved. Mismatched, expired, repeated, or changed-configuration approvals fail closed. Unknown outcomes require inspecting the receiver's idempotency journal, not replaying commands.
+Set `auto_approve: true` on an authorized action or privileged tool to execute automatically, including production. Omitted or false keeps approval enabled for existing configurations. New managed workspaces default automatic; toggle **Require approval** in Settings. Mismatched, expired, repeated, or changed-configuration approvals fail closed. Unknown outcomes require inspecting the receiver's idempotency journal, not replaying commands.
 
 ## Add real commands and independent recovery
 

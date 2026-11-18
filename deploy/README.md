@@ -13,7 +13,7 @@ For the sandboxed Bash service, follow [the executor's always-on Linux setup](..
 3. Install your configuration as `/etc/roundhouse/config.json`. For systemd, keep `listen` at `127.0.0.1:8080`. For Compose, use `0.0.0.0:8080` **inside the container**; Compose publishes only host loopback.
 4. Set `database` to `/var/lib/roundhouse/roundhouse.sqlite`.
 5. Provision the required environment variables in `/etc/roundhouse/secrets.env` through your secret manager. Use environment-file syntax (`NAME=value`, no `export`) and file mode 0600. Never put this file in Git or a Docker build context.
-6. Configure a dedicated provider key with a provider-side spending cap. Give recovery tokens only the named endpoint's authority. Start with a staging application and `auto_approve: false`.
+6. Configure a dedicated provider key with a provider-side spending cap. Give recovery tokens only the named endpoint's authority. Test in staging first. Set `auto_approve: false` if you want a human gate.
 
 The example uses `ROUNDHOUSE_OPERATOR_TOKEN`, `ROUNDHOUSE_EVENT_TOKEN`, `ROUNDHOUSE_PROVIDER_KEY`, `ROUNDHOUSE_DIAGNOSTIC_TOKEN`, and `ROUNDHOUSE_RECOVERY_TOKEN`. Generate distinct high-entropy operator and event tokens. The service refuses missing or empty configured secrets.
 
@@ -49,7 +49,7 @@ Compose uses a named volume for SQLite, drops capabilities, runs as a non-root u
 5. Restart the Roundhouse process. Confirm that history and budgets remain and the action is not replayed.
 6. Test the downstream adapter's failure, timeout, and idempotency behavior. HTTP 2xx without healthy application status must not resolve the incident.
 
-Only enable production after approving the server, provider account limit, exact target endpoints, and action scopes. Production monitors cannot auto-approve actions.
+Only enable production after authorizing the server, provider account limit, exact target endpoints, and action scopes. Explicit `auto_approve: true` allows automatic recovery. Omitted or false preserves manual approval.
 
 ## Stop and roll back
 

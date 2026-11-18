@@ -31,8 +31,9 @@ def scan(label, data):
     count += 1
     fixtures += data.count(KEY_FIXTURE)
     candidate = data.replace(KEY_FIXTURE, b"DOCUMENTED_NON_KEY_FIXTURE")
-    # Exact .test URL used to prove configuration rejects embedded credentials.
-    candidate = candidate.replace(b"https://user:password@app.test/health", b"DOCUMENTED_NON_SECRET_URL_FIXTURE")
+    # Exact non-secret URLs used to prove configuration rejects embedded credentials.
+    for fixture in (b"https://user:password@app.test/health", b"https://user:pass@public.com/health"):
+        candidate = candidate.replace(fixture, b"DOCUMENTED_NON_SECRET_URL_FIXTURE")
     for name, pattern in PATTERNS.items():
         if pattern.search(candidate):
             findings.append({"source": label, "rule": name})

@@ -11,8 +11,14 @@ pub struct RegisteredTool {
     pub input_schema: Value,
     pub adapter: String,
     pub effect: ToolEffect,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub auto_approve: bool,
     #[serde(default = "empty_options")]
     pub options: Value,
+}
+
+fn is_false(value: &bool) -> bool {
+    !value
 }
 
 fn empty_options() -> Value {

@@ -24,9 +24,8 @@ fn named_actions_require_exact_authority_and_cannot_replay() {
     assert_eq!(tool_decision(&m, &call, Some("restart"), false), "execute");
     assert_eq!(tool_decision(&m, &call, Some("restart"), true), "deny");
     m.actions[0].auto_approve = true;
-    assert_eq!(tool_decision(&m, &call, None, false), "approval_required");
-    m.environment = Environment::Test;
     assert_eq!(tool_decision(&m, &call, None, false), "execute");
+    assert_eq!(tool_decision(&m, &call, None, true), "deny");
     for (name, args) in [
         ("shell", json!({})),
         ("request_recovery", json!({"action":"delete"})),
@@ -53,7 +52,43 @@ fn named_actions_require_exact_authority_and_cannot_replay() {
 }
 
 #[test]
-fn configuration_rejects_production_auto_approval_and_unsafe_urls() {
+fn explicit_auto_approval_is_environment_independent_and_omission_remains_manual() {
+    let call = Call {
+        id: "policy".into(),
+        name: "request_recovery".into(),
+        arguments: json!({"action":"restart"}),
+    };
+    for environment in [
+        Environment::Test,
+        Environment::Staging,
+        Environment::Production,
+    ] {
+        let mut base = json!(monitor());
+        base["environment"] = json!(environment);
+        for automatic in [None, Some(false), Some(true)] {
+            let action = base["actions"][0].as_object_mut().unwrap();
+            action.remove("auto_approve");
+            if let Some(value) = automatic {
+                action.insert("auto_approve".into(), json!(value));
+            }
+            let m: Monitor = serde_json::from_value(base.clone()).unwrap();
+            assert_eq!(m.actions[0].auto_approve, automatic == Some(true));
+            assert_eq!(
+                tool_decision(&m, &call, None, false),
+                if automatic == Some(true) {
+                    "execute"
+                } else {
+                    "approval_required"
+                }
+            );
+            assert_eq!(tool_decision(&m, &call, Some("restart"), false), "execute");
+            assert_eq!(tool_decision(&m, &call, Some("restart"), true), "deny");
+        }
+    }
+}
+
+#[test]
+fn configuration_accepts_explicit_production_auto_approval_and_rejects_unsafe_urls() {
     let base = json!({"provider":{"kind":"anthropic","base_url":"https://api.anthropic.com/v1","model":"test","max_output_tokens":512},"limits":{"daily_budget_microusd":100,"reserve_per_request_microusd":10,"daily_requests":10,"requests_per_incident":3,"daily_actions":1,"investigation_timeout_seconds":10},"monitors":[monitor()]});
     assert!(Config::parse(&base.to_string()).is_ok());
     for url in [
@@ -82,7 +117,7 @@ fn configuration_rejects_production_auto_approval_and_unsafe_urls() {
         .is_ok());
     let mut c = base;
     c["monitors"][0]["actions"][0]["auto_approve"] = json!(true);
-    assert!(Config::parse(&c.to_string()).is_err());
+    assert!(Config::parse(&c.to_string()).is_ok());
 }
 
 #[test]
@@ -192,6 +227,39 @@ fn config_with_tools(tools: Value) -> Value {
     let mut m = json!(monitor());
     m["tools"] = tools;
     json!({"provider":{"kind":"anthropic","base_url":"https://api.anthropic.com/v1","model":"test","max_output_tokens":512},"limits":{"daily_budget_microusd":100,"reserve_per_request_microusd":10,"daily_requests":10,"requests_per_incident":3,"daily_actions":1,"investigation_timeout_seconds":10},"monitors":[m]})
+}
+
+#[test]
+fn registry_auto_approval_is_explicit_typed_host_policy_and_preserves_manual_fingerprints() {
+    let mut legacy = json!(registered_tool());
+    legacy["effect"] = json!("privileged");
+    assert!(legacy.get("auto_approve").is_none());
+    for automatic in [None, Some(false), Some(true)] {
+        let mut tool = legacy.clone();
+        if let Some(value) = automatic {
+            tool["auto_approve"] = json!(value);
+        }
+        let c = Config::parse(&config_with_tools(json!([tool])).to_string()).unwrap();
+        let t = &c.monitors[0].tools[0];
+        assert_eq!(t.auto_approve, automatic == Some(true));
+        let materialized = json!(t);
+        if automatic != Some(true) {
+            assert_eq!(materialized, legacy);
+        } else {
+            assert_eq!(materialized["auto_approve"], true);
+        }
+        let advertised = Session::new(Value::Null)
+            .request(&c.provider, &[], &c.monitors[0].tools)
+            .unwrap();
+        assert!(!advertised.to_string().contains("auto_approve"));
+        assert!(validate_tool(t, &json!({"queue":"jobs"})).is_ok());
+        assert!(validate_tool(t, &json!({"queue":"jobs","auto_approve":true})).is_err());
+    }
+    for invalid in [Value::Null, json!("true"), json!(1), json!({})] {
+        let mut tool = legacy.clone();
+        tool["auto_approve"] = invalid;
+        assert!(Config::parse(&config_with_tools(json!([tool])).to_string()).is_err());
+    }
 }
 
 #[test]

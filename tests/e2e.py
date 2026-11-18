@@ -417,11 +417,18 @@ class EndToEnd(unittest.TestCase):
         self.h.stop()
         self.assertNotIn("demo-provider-key", (self.h.path / "service.log").read_text())
 
-    def test_configuration_rejects_production_auto_approval(self):
+    def test_explicit_production_auto_approval_executes(self):
         self.h = Harness(self.app, production=True)
         self.h.config["monitors"][0]["actions"][0]["auto_approve"] = True
-        with self.assertRaisesRegex(AssertionError, "service exited"):
-            self.h.start()
+        self.h.start()
+        self.h.wait_state("resolved")
+        self.assertEqual(self.app.action_count, 1)
+
+    def test_omitted_production_auto_approval_remains_manual(self):
+        self.h = Harness(self.app, production=True)
+        del self.h.config["monitors"][0]["actions"][0]["auto_approve"]
+        self.h.start()
+        self.h.wait_state("awaiting_approval")
         self.assertEqual(self.app.action_count, 0)
 
     def test_misplaced_secret_is_not_echoed_in_startup_error(self):

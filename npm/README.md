@@ -77,7 +77,7 @@ Enable Workers logs and traces in your deployment settings. Do not log bindings 
 		"id": "application", "health_url": "https://app.example/health", "interval_seconds": 60,
 		"timeout_seconds": 5, "expected_status": 200, "environment": "production",
 		"diagnostics": [{ "name": "worker", "url": "https://app.example/worker/status" }],
-		"actions": [{ "name": "restart_worker", "description": "Restart the stopped application worker", "url": "https://app.example/worker/restart", "auto_approve": false }]
+		"actions": [{ "name": "restart_worker", "description": "Restart the stopped application worker", "url": "https://app.example/worker/restart", "auto_approve": true }]
 	}]
 }
 ```
@@ -104,9 +104,9 @@ Generated tokens live only in Git-ignored `.roundhouse-test-secrets.json` with m
 
 ## Operational limits
 
-Only fresh successful probes resolve incidents. An accepted recovery POST or a provider webhook claiming resolution does not. Exact production approval is single-use and bound to an incident, action, and configuration. Action claims and reservations persist before external I/O. Uncertain actions are not replayed. Restart interrupts investigation into `needs_attention` rather than reissuing side effects.
+Only fresh successful probes resolve incidents. An accepted recovery POST or a provider webhook claiming resolution does not. Explicit `auto_approve: true` authorizes configured actions or privileged tools automatically. Omitted or false preserves manual approval, bound to an incident and configuration. Action claims and reservations persist before external I/O. Uncertain actions are not replayed. Restart interrupts investigation into `needs_attention` rather than reissuing side effects.
 
-Alarms wake at roughly five-second intervals while enabled; monitor intervals are lower bounds, not timing SLAs. Probes and investigation are serial in one controller, so a long investigation delays other checks. There is no multi-region quorum, missed-check SLA calculation, automatic investigation retry, unrestricted network tool, or high-availability scheduler. Virtual Bash is an interpreter, not a native shell. Real Bash requires the separate Linux executor and explicit privileged approval.
+Alarms wake at roughly five-second intervals while enabled; monitor intervals are lower bounds, not timing SLAs. Probes and investigation are serial in one controller, so a long investigation delays other checks. There is no multi-region quorum, missed-check SLA calculation, automatic investigation retry, unrestricted network tool, or high-availability scheduler. Virtual Bash is an interpreter, not a native shell. Real Bash requires the separate Linux executor and configured automatic authority or exact privileged approval.
 
 Local telemetry is capped at 100,000 records and 30 days, with exact-match queries and bounded aggregates. Probe history retains 10,000 observations. Incident history and action/budget records grow independently and require operator storage planning. There is no PostHog/Better Stack parity, session replay, OTLP receiver, counter/histogram support, or percentile inference. See the [coverage reference](https://github.com/tschk/roundhouse/blob/main/docs/observability.md).
 

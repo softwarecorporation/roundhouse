@@ -299,7 +299,6 @@
     const incidentId = node("p", id, "incident-id");
     const pending = node("div");
     const disclosure = node("details");
-    disclosure.open = true;
     disclosure.append(node("summary", "Evidence and action history"));
     const history = node("div");
     disclosure.append(history);

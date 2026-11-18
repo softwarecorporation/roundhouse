@@ -49,6 +49,9 @@ jobs:
       - run: bun run --cwd npm test
       - run: bun install --cwd examples/reportroom --frozen-lockfile
       - run: bun run --cwd examples/reportroom test
+      - run: bun install --cwd platform --frozen-lockfile
+      - run: bun run --cwd platform build
+      - run: bun run --cwd platform test
       - run: bun pm --cwd npm pack
       - run: bun run --cwd npm test:package
       - run: python3 tools/audit_release.py

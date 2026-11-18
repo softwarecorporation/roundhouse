@@ -1,0 +1,7 @@
+node_modules/
+.data/
+.build/
+.cloudflare/
+.wrangler/
+.dev.vars*
+*.secrets.json

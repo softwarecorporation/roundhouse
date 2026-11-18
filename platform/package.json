@@ -1,0 +1,17 @@
+{
+  "name": "roundhouse-platform",
+  "private": true,
+  "type": "module",
+  "license": "MPL-2.0",
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node dev.js",
+    "test": "bun test *.test.js",
+    "deploy": "node node_modules/cf/bin/cf deploy --prebuilt"
+  },
+  "devDependencies": {
+    "cf": "1.0.0-rc.1",
+    "esbuild": "0.28.2",
+    "miniflare": "4.20260730.0"
+  }
+}

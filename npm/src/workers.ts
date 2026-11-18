@@ -133,6 +133,8 @@ export class Roundhouse extends DurableObject<Env> {
   }
   private state(id: string, state: IncidentState): void { this.ctx.storage.sql.exec("UPDATE incidents SET state=? WHERE id=?", state, id); }
   private enabled(): boolean { return this.rows<{ value: number }>("SELECT value FROM settings WHERE key='enabled'")[0]?.value === 1; }
+  protected applicationFetch(url: string, init: RequestInit): Promise<Response> { return fetch(url, init); }
+  protected providerFetch(url: string, init: RequestInit): Promise<Response> { return fetch(url, init); }
   private incident(id: string): Incident {
     const i = this.rows<Incident>("SELECT * FROM incidents WHERE id=?", id)[0];
     if (!i) throw new HttpError(404);
@@ -244,7 +246,7 @@ export class Roundhouse extends DurableObject<Env> {
 
   private async health(m: Monitor, signal?: AbortSignal): Promise<{ healthy: boolean; status?: number }> {
     try {
-      const r = await fetch(m.health_url, { redirect: "manual", signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(m.timeout_seconds * 1000)]) : AbortSignal.timeout(m.timeout_seconds * 1000) });
+      const r = await this.applicationFetch(m.health_url, { redirect: "manual", signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(m.timeout_seconds * 1000)]) : AbortSignal.timeout(m.timeout_seconds * 1000) });
       await r.body?.cancel();
       return { healthy: r.status === m.expected_status, status: r.status };
     } catch { return { healthy: false }; }
@@ -254,7 +256,7 @@ export class Roundhouse extends DurableObject<Env> {
     const diagnostics = [];
     for (const d of m.diagnostics) {
       try {
-        const r = await fetch(d.url, { headers: this.applicationHeaders(), redirect: "manual", signal: AbortSignal.any([signal, AbortSignal.timeout(m.timeout_seconds * 1000)]) });
+        const r = await this.applicationFetch(d.url, { headers: this.applicationHeaders(), redirect: "manual", signal: AbortSignal.any([signal, AbortSignal.timeout(m.timeout_seconds * 1000)]) });
         diagnostics.push({ name: d.name, status: r.status, body: this.clean(await bounded(r.body, 4096, true)) });
       } catch { diagnostics.push({ name: d.name, error: "diagnostic unavailable" }); }
     }
@@ -335,7 +337,7 @@ export class Roundhouse extends DurableObject<Env> {
         if (p.kind === "anthropic") { headers.set("x-api-key", this.env.PROVIDER_API_KEY); headers.set("anthropic-version", "2023-06-01"); }
         else headers.set("authorization", `Bearer ${this.env.PROVIDER_API_KEY}`);
         phase = "provider_request";
-        const response = await fetch(p.base_url.replace(/\/$/, "") + (p.kind === "anthropic" ? "/messages" : "/chat/completions"), { method: "POST", headers, body, signal, redirect: "manual" });
+        const response = await this.providerFetch(p.base_url.replace(/\/$/, "") + (p.kind === "anthropic" ? "/messages" : "/chat/completions"), { method: "POST", headers, body, signal, redirect: "manual" });
         if (!response.ok) { await response.body?.cancel(); this.audit(i.id, "provider_failed", { status: response.status }); throw new Error("provider unavailable"); }
         phase = "provider_response";
         const value: unknown = JSON.parse(await bounded(response.body, 65536));
@@ -394,7 +396,7 @@ export class Roundhouse extends DurableObject<Env> {
               let outcome = "unknown";
               try {
                 const h = this.applicationHeaders(); h.set("content-type", "application/json"); h.set("idempotency-key", `${i.id}:${action.name}`);
-                const r = await fetch(action.url, { method: "POST", headers: h, body: JSON.stringify({ incident_id: i.id }), redirect: "manual", signal: AbortSignal.any([signal, AbortSignal.timeout(m.timeout_seconds * 1000)]) });
+                const r = await this.applicationFetch(action.url, { method: "POST", headers: h, body: JSON.stringify({ incident_id: i.id }), redirect: "manual", signal: AbortSignal.any([signal, AbortSignal.timeout(m.timeout_seconds * 1000)]) });
                 outcome = r.ok ? "accepted" : "rejected"; await r.body?.cancel();
               } catch { /* The durable claim remains consumed when the outcome is unknown. */ }
               this.audit(i.id, "action_outcome", { outcome });

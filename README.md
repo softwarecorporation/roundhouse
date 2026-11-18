@@ -2,7 +2,13 @@
 
 Always-on agentic operations built on [Rotary](https://github.com/tschk/rotary). Roundhouse watches configured HTTP health endpoints, investigates failures with your model, and executes configured tools within explicit authority. Only independent health checks can resolve an incident.
 
-Run it as a Cloudflare Worker with SQLite Durable Objects, or on a Linux server with persistent storage and a supervisor. No laptop, interactive agent session, Docker daemon, or desktop connection is required. This is API-first software, not a dashboard or a managed hosting service.
+Run it as a Cloudflare Worker with SQLite Durable Objects, or on a Linux server with persistent storage and a supervisor. No laptop, interactive agent session, Docker daemon, or desktop connection is required.
+
+The [managed platform](platform/README.md) adds a tenant-aware console, scoped MCP access, D1 analytics and logs, and public status pages. Its first control target is isolated synthetic Reportroom, not arbitrary customer production systems. The core remains free to self-manage. Cloudflare infrastructure and optional model usage can incur charges.
+
+- **[Open Roundhouse](https://roundhouse.tsc.hk)**: landing page and authenticated console.
+- **[Open Reportroom](https://reportroom.roundhouse.tsc.hk)**: generate real CSV reports, pause the synthetic worker, approve recovery, and inspect the result.
+- **[Set up your own deployment](platform/README.md)** or use the existing [API-first runtime](docs/setup.md).
 
 ## Try the standalone SaaS demo
 

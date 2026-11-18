@@ -148,7 +148,7 @@
     $("apps-access").hidden = isOwner();
     setText("apps-scheduler", state.appsEnabled === true ? "Tenant scheduler running" : state.appsEnabled === false ? "Tenant scheduler stopped" : "Scheduler unavailable");
     const apps = state.apps || [];
-    replaceRegion("app-list", [apps, state.selectedApp], () => {
+    replaceRegion("app-list", state.apps, () => {
       if (!state.apps) return empty("Apps unavailable", "Refresh to load your apps.");
       if (!apps.length) return empty("No apps connected", isOwner() ? "Connect a health endpoint to start." : "No apps in this workspace.");
       const list = table(["App", "Environment", "Connection", ""], [...apps].sort((a, b) => Number(a.kind === "example") - Number(b.kind === "example")).map((app) => {
@@ -173,6 +173,12 @@
       }));
       return list;
     });
+    for (const button of $("app-list").querySelectorAll("[data-select-app]")) {
+      const active = button.dataset.selectApp === state.selectedApp;
+      button.textContent = active ? "Selected" : "Open";
+      button.setAttribute("aria-pressed", String(active));
+      button.closest("tr").classList.toggle("app-row-selected", active);
+    }
     const detail = state.appDetail;
     const app = detail?.app ? { ...selectedApp(), ...detail.app } : null;
     $("app-detail").hidden = !app || app.id !== state.selectedApp;
@@ -473,6 +479,7 @@
   function updateControls() {
     const unavailable = state.busy || !state.snapshot;
     const appsUnavailable = unavailable || !state.apps || !!state.appsError;
+    $("connect-app").hidden = !isOwner();
     $("connect-app").disabled = appsUnavailable || !isOwner();
     $("app-form-controls").disabled = appsUnavailable || !isOwner();
     $("app-editor").hidden = !isOwner();
@@ -495,13 +502,14 @@
   }
 
   function render(data) {
+    $("demo-nav").hidden = !isGuest();
     setText("tenant-name", data.tenant?.name || data.tenant?.id || state.session.tenant_id);
     setText("session-kind", isGuest() ? "Isolated guest" : `${state.session.role} / ${state.session.kind}`);
     renderSystems(data);
     renderApps();
-    const incidents = new Map((data.monitoring?.incidents || []).map((incident) => [String(incident.id), { ...incident, _appName: "Reportroom example", _kind: "example" }]));
+    const incidents = new Map((isGuest() ? data.monitoring?.incidents || [] : []).map((incident) => [String(incident.id), { ...incident, _appName: "Reportroom example", _kind: "example" }]));
     for (const incident of state.appDetail?.monitoring?.incidents || []) incidents.set(String(incident.id), { ...incident, _appName: selectedApp()?.name || state.selectedApp, _kind: selectedApp()?.kind });
-    setText("incident-context", selectedApp() ? `${selectedApp().name} and Reportroom example. Select another app in Apps.` : "Reportroom example. Select an app to inspect its evidence.");
+    setText("incident-context", selectedApp() ? `Evidence for ${selectedApp().name}.` : "Select a connected app to inspect its evidence.");
     renderIncidents([...incidents.values()]);
     renderAnalytics(data.analytics || {});
     renderLogs();
@@ -537,7 +545,7 @@
           if (appsResult.error.status === 401) throw appsResult.error;
           state.appsError = `Apps unavailable. ${appsResult.error.message} Refresh before taking action.`;
         } else {
-          state.apps = appsResult.value.apps;
+          state.apps = appsResult.value.apps.filter((app) => isGuest() || app.kind !== "example");
           state.appsEnabled = appsResult.value.enabled;
           if (!state.apps.some((app) => app.id === state.selectedApp)) {
             state.selectedApp = (state.apps.find((app) => app.kind === "connected") || state.apps[0])?.id || null;

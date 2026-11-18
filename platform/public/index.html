@@ -1,80 +1,200 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101112">
-  <meta name="description" content="AI on call for your apps. Observability, analytics, logs, incidents and authorized automatic recovery in one platform. Managed or free to self-manage.">
-  <title>Roundhouse | AI on call. Observability and recovery.</title>
-  <link rel="icon" href="/roundhouse.svg" type="image/svg+xml">
-  <link rel="preload" href="/archivo.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="/platform.css">
-</head>
-<body class="landing-page">
-  <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-header wrap">
-    <a class="brand" href="/" aria-label="Roundhouse home"><img src="/roundhouse.svg" width="48" height="48" alt="">roundhouse</a>
-    <nav aria-label="Main"><a href="#platform">Platform</a><a href="#options">Get started</a><a href="/console">Sign in</a></nav>
-  </header>
-  <main id="main">
-    <section class="hero wrap" aria-labelledby="hero-title">
-      <div class="hero-entry">
-        <h1 id="hero-title">Put AI on call.<br><span>Get your time back.</span></h1>
-        <p>Observability and recoverability, together. AI watches your apps, investigates failures, runs the fixes you authorize, and verifies recovery.</p>
-        <div class="action-row"><a class="button primary" href="/console?guest=1#systems">Try the recovery demo</a><a class="text-link" href="#options">Connect your app</a></div>
-        <p class="fine-print">Always on. Your rules. Automatic actions, optional approval.</p>
-      </div>
-      <figure class="agent-map">
-        <svg viewBox="0 0 480 400" role="img" aria-labelledby="agent-title agent-description">
-          <title id="agent-title">An AI recovery loop, not another alert inbox</title>
-          <desc id="agent-description">App health checks and events feed the AI. It investigates configured diagnostics, performs an authorized action, then checks health independently. The loop continues without an open laptop.</desc>
-          <g class="map-track"><path d="M82 102H199M281 102H400V178M400 222V302H281M199 302H82V222M82 178V146"/><path d="M82 110H199M281 110H392V178M392 222V294H281M199 294H90V222M90 178V146"/></g>
-          <g class="map-station"><rect x="8" y="72" width="146" height="70"/><rect x="199" y="72" width="82" height="70"/><rect x="324" y="178" width="146" height="44"/><rect x="199" y="272" width="82" height="60"/><rect x="8" y="178" width="146" height="44"/></g>
-          <g class="map-copy" text-anchor="middle"><text x="81" y="101">App health</text><text x="81" y="122" class="map-small">Checks + events</text><text x="240" y="113" class="map-ai">AI</text><text x="397" y="205">Investigate</text><text x="240" y="298">Act</text><text x="240" y="317" class="map-small">Your scope</text><text x="81" y="205">Verify health</text></g>
-          <g class="map-direction"><path d="M173 102L180 106L173 110M392 152L396 159L400 152M307 294L300 298L307 302M82 161L86 154L90 161"/></g>
-          <image class="map-mark" href="/roundhouse.svg" x="210" y="176" width="60" height="60"/>
-          <text class="map-center" x="240" y="252" text-anchor="middle">Roundhouse</text>
-          <text class="map-caption" x="240" y="375" text-anchor="middle">A fresh check closes the loop.</text>
-        </svg>
-        <figcaption>Illustrative recovery loop</figcaption>
-      </figure>
-      <nav class="platform-rail" aria-label="Platform capabilities"><a href="/console#analytics">Analytics &amp; events</a><a href="/console#logs">Logs</a><a href="/console#incidents">Incidents &amp; recovery</a><a href="/console#status">Status pages</a><a href="/console#apps">Automations</a><a href="/console#settings">MCP</a></nav>
-    </section>
-
-    <section id="platform" class="platform-section wrap" aria-labelledby="platform-title">
-      <div class="section-intro"><h2 id="platform-title">See the whole app.<br>Do something about it.</h2><p>One workspace for signals, incidents and action. Lightweight observability today. A broader replacement for a fragmented stack over time.</p></div>
-      <div class="capability-list">
-        <a href="/console#apps"><h3>Monitoring</h3><p>Scheduled HTTPS checks and app-triggered events.</p><span>Available</span></a>
-        <a href="/console#analytics"><h3>Analytics &amp; events</h3><p>Pageviews and custom events, via tracker or API.</p><span>Available</span></a>
-        <a href="/console#logs"><h3>Logs</h3><p>Ingest structured logs. Follow correlation IDs.</p><span>Available</span></a>
-        <a href="/console#incidents"><h3>Incidents &amp; recovery</h3><p>AI investigation, action history, fresh health checks.</p><span>Available</span></a>
-        <a href="/console#status"><h3>Status pages</h3><p>Publish customer-facing updates you control.</p><span>Available</span></a>
-        <a href="/console#apps"><h3>Automations</h3><p>Checks or events trigger your scoped recovery actions.</p><span>Available</span></a>
-        <a href="/console#settings"><h3>MCP access</h3><p>Let your agents read evidence and control monitoring.</p><span>Available</span></a>
-      </div>
-    </section>
-
-    <section class="proof-section" aria-labelledby="proof-title">
-      <div class="wrap proof-layout">
-        <div><h2 id="proof-title">Not just an alert.<br>A verified recovery.</h2><p>In Reportroom, pause a real reporting worker. Follow the investigation, authorized restart and independent health check.</p><a class="button primary" href="/console?guest=1#systems">See recovery in action</a><p class="fine-print">Isolated demo. Synthetic data. Deterministic fixture agent, not a paid model.</p></div>
-        <figure class="recovery-record"><figcaption>Recorded Reportroom demo run</figcaption><ol><li><span>Detected</span><strong>Health check returned 503</strong></li><li><span>Investigated</span><strong>Export worker paused</strong></li><li><span>Acted</span><strong>Authorized resume executed once</strong></li><li><span>Verified</span><strong>Fresh health check returned 200</strong></li></ol><a href="https://reportroom.roundhouse.tsc.hk">Open the working reporting app</a></figure>
-      </div>
-    </section>
-
-    <section class="vision-section wrap" aria-labelledby="vision-title">
-      <div class="section-intro"><h2 id="vision-title">Fewer tools.<br>Less firefighting.</h2><div><p>The ambition: replace the stack you piece together from Sentry, Better Stack, PostHog, Foglamp and more. Not just observe. Recover.</p><p>Start alongside your existing tools: send explicit events and logs, connect HTTPS diagnostics and actions, or use our scoped MCP server. No drop-in adapters implied.</p></div></div>
-      <div class="roadmap-line"><h3>Next, not shipped</h3><p>General error tracking. Distributed tracing. Session replay and funnels. Priced AI costs and evals. Alert delivery. Upstream MCP connectors.</p><a class="text-link" href="https://github.com/softwarecorporation/roundhouse/blob/main/docs/observability-comparison.md">Compare capabilities and sources</a></div>
-      <p class="fine-print">“Never be on call again” is the direction, not a reliability guarantee. Today's recovery is limited to the endpoints, permissions and budgets you configure.</p>
-    </section>
-
-    <section id="options" class="options-section wrap" aria-labelledby="options-title">
-      <h2 id="options-title">Your apps. Your way to run it.</h2>
-      <div class="run-options">
-        <article><h3>Managed</h3><p class="option-benefit">No server. No open laptop.</p><p>Hosted on Cloudflare. Connect your apps in the console.</p><a class="button primary" href="/console">Set up your workspace</a><p class="fine-print">Invitation access. Provider and app secrets are operator-provisioned. No self-service billing yet.</p></article>
-        <article><h3>Free to self-manage</h3><p class="option-benefit">Your infrastructure. Your model.</p><p>Open-source software, with no Roundhouse license fee.</p><a class="button" href="/docs/setup">Read the setup guide</a><p class="fine-print">Hosting and model usage are separate costs. MPL-2.0.</p></article>
-      </div>
-    </section>
-  </main>
-  <footer class="site-footer wrap"><span>Roundhouse by Software Corp</span><nav aria-label="Footer"><a href="/docs/setup">Docs</a><a href="https://github.com/softwarecorporation/roundhouse">Source</a><a href="https://reportroom.roundhouse.tsc.hk">Reportroom</a></nav></footer>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6c29e" />
+    <title>Roundhouse | App monitoring and AI recovery</title>
+    <meta
+      name="description"
+      content="Monitor your apps, investigate failures with AI and run the recovery actions you authorize."
+    />
+    <link rel="icon" href="/roundhouse.svg" />
+    <link
+      rel="preload"
+      href="/archivo.ttf"
+      as="font"
+      type="font/ttf"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/platform.css" />
+  </head>
+  <body class="atlas">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="mast">
+      <a class="brand" href="/"
+        ><img
+          src="/roundhouse.svg"
+          width="45"
+          height="45"
+          alt=""
+        />Roundhouse</a
+      >
+      <nav aria-label="Main">
+        <a href="/docs/setup">Docs</a><a href="/console">Sign in ↗</a>
+      </nav>
+    </header>
+    <main id="main">
+      <section class="plate">
+        <div class="plate-copy">
+          <h1>On call for<br />your apps.</h1>
+          <p>
+            Roundhouse monitors app health. When a check fails, AI investigates,
+            runs the fix you’ve authorized, and checks that it worked.
+          </p>
+          <div class="action-row">
+            <a class="button primary" href="/console">Open workspace ↗</a
+            ><a class="trial" href="/console?guest=1#systems"
+              >Try a recovery drill</a
+            >
+          </div>
+        </div>
+        <figure class="drawing">
+          <svg
+            viewBox="-285 -274 570 516"
+            role="img"
+            aria-labelledby="plan-title"
+          >
+            <title id="plan-title">
+              Plan of a railway roundhouse with thirteen engine bays and a
+              rotating track bridge
+            </title>
+            <defs>
+              <g id="bay">
+                <path
+                  d="M-27 -222 L-14 -112 L14 -112 L27 -222Z"
+                  fill="#203a4b"
+                />
+                <path
+                  d="M-21 -214 L-11 -120 M21 -214 L11 -120 M-22 -203H22 M-19 -169H19"
+                  fill="none"
+                  stroke="#90a5a0"
+                  stroke-width="1.6"
+                />
+                <path
+                  d="M-6 -214V-44 M6 -214V-44"
+                  stroke="#283f4b"
+                  fill="none"
+                />
+                <path
+                  d="M-5 -210V-112 M5 -210V-112"
+                  stroke="#f6c29e"
+                  fill="none"
+                />
+              </g>
+            </defs>
+            <g fill="none" stroke="#a77960" stroke-width=".8">
+              <circle r="237" stroke-dasharray="4 5" />
+              <circle r="99" />
+              <path d="M-278 0H278M0 -261V236" stroke-dasharray="10 5 2 5" />
+            </g>
+            <g>
+              <use href="#bay" transform="rotate(-84)" />
+              <use href="#bay" transform="rotate(-70)" />
+              <use href="#bay" transform="rotate(-56)" />
+              <use href="#bay" transform="rotate(-42)" />
+              <use href="#bay" transform="rotate(-28)" />
+              <use href="#bay" transform="rotate(-14)" />
+              <use href="#bay" />
+              <use href="#bay" transform="rotate(14)" />
+              <use href="#bay" transform="rotate(28)" />
+              <use href="#bay" transform="rotate(42)" />
+              <use href="#bay" transform="rotate(56)" />
+              <use href="#bay" transform="rotate(70)" />
+              <use href="#bay" transform="rotate(84)" />
+            </g>
+            <g fill="none" stroke="#263e4b">
+              <circle r="45" stroke-width="2" />
+              <circle r="40" />
+              <path
+                d="M-6 45V238 M6 45V238 M15 41 Q30 130 148 186 M26 38 Q41 124 156 177"
+              />
+              <path
+                d="M0 49V239"
+                stroke="#976e56"
+                stroke-width="22"
+                stroke-dasharray="2 7"
+              />
+            </g>
+            <g transform="rotate(-28)">
+              <rect
+                x="-10"
+                y="-43"
+                width="20"
+                height="86"
+                rx="2"
+                fill="#ae3922"
+              />
+              <path d="M-5 -41V41M5 -41V41" stroke="#f6c29e" />
+              <circle r="4" fill="#213a49" />
+            </g>
+            <g fill="none" stroke="#283e49">
+              <path d="M24 18L91 76H207M-136 -157L-180 -214H-258" />
+              <circle cx="24" cy="18" r="2" />
+              <circle cx="-136" cy="-157" r="2" />
+            </g>
+            <g font-family="monospace" font-size="12" fill="#283e49">
+              <text x="101" y="70">Turntable</text>
+              <text x="-259" y="-222">Engine shed</text>
+            </g>
+          </svg>
+        </figure>
+      </section>
+      <section class="drill">
+        <div>
+          <h2>A recovery,<br />on record.</h2>
+          <p>
+            From an isolated demo run. The fixture agent uses a synthetic
+            reporting app; no customer system is involved.
+          </p>
+          <a class="trial" href="/console?guest=1#systems"
+            >Run the drill yourself ↗</a
+          >
+        </div>
+        <ol>
+          <li><span>Check</span>Health endpoint returned <code>503</code></li>
+          <li><span>Diagnosis</span>Export worker was paused</li>
+          <li><span>Action</span>Authorized resume ran once</li>
+          <li>
+            <span>Verification</span>Fresh health check returned
+            <code>200</code>
+          </li>
+        </ol>
+      </section>
+      <section class="directory">
+        <h2>Inside the workspace</h2>
+        <dl>
+          <dt><a href="/console#apps">Apps &amp; automations ↗</a></dt>
+          <dd>
+            Connect endpoints. Run checks on a schedule or trigger an
+            investigation with an event. Require approval per action if needed.
+          </dd>
+          <dt><a href="/console#analytics">Events &amp; logs ↗</a></dt>
+          <dd>
+            Count pageviews and custom events. Follow a trace ID through
+            structured logs.
+          </dd>
+          <dt><a href="/console#incidents">Incident history ↗</a></dt>
+          <dd>
+            Inspect the agent’s calls, reported usage, actions and verification
+            results.
+          </dd>
+          <dt><a href="/console#status">Public status ↗</a></dt>
+          <dd>Publish updates when you choose.</dd>
+          <dt><a href="/console#settings">MCP access ↗</a></dt>
+          <dd>
+            Give agents a scoped key to read evidence or request an
+            investigation.
+          </dd>
+        </dl>
+      </section>
+    </main>
+    <footer class="mast">
+      <span>Software Corporation (Hong Kong)</span>
+      <nav aria-label="Footer">
+        <a href="/docs/setup">Self-host</a
+        ><a href="https://github.com/softwarecorporation/roundhouse">Source ↗</a>
+      </nav>
+    </footer>
+  </body>
 </html>

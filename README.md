@@ -1,6 +1,6 @@
 # Roundhouse
 
-Roundhouse by Software Corp.
+Roundhouse by Software Corporation (Hong Kong).
 
 <img src="platform/public/roundhouse.svg" width="72" height="72" alt="Drawn railway roundhouse">
 

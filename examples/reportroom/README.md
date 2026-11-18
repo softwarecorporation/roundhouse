@@ -43,7 +43,7 @@ Expect `Reportroom ready on port 3200. Provider mode: fixture. Synthetic data on
 
 Open **Roundhouse**, start monitoring if needed, then **Pause worker**. Rotary inspects the actual queue and requests only the configured `resume_exports` action. New workspaces execute automatically within their limits. A later independent healthy probe resolves the incident, not the recovery HTTP response.
 
-Managed **Settings → Require approval** enables a human gate. Existing initialized controllers without a saved policy retain manual behavior. The standalone `createRuntime({ requireApproval: true })` option selects manual mode for a fresh database; persisted policy wins on restart. Manual mode waits without acting until **Approve recovery**. Duplicate or stale approvals are rejected.
+Managed **Recovery drill → Require approval** enables a human gate. Existing initialized controllers without a saved policy retain manual behavior. The standalone `createRuntime({ requireApproval: true })` option selects manual mode for a fresh database; persisted policy wins on restart. Manual mode waits without acting until **Approve recovery**. Duplicate or stale approvals are rejected.
 
 Ordinary report generation does not trigger a failure. The injected fault is explicit and limited to synthetic state. Reset is a manual demo operation, not a production rollback or a way to reset spending allowances. Capacity is bounded to 25 report jobs. Reset reports when that limit is reached.
 

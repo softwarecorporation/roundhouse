@@ -1,273 +1,158 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Roundhouse | AI on call for your apps</title>
-    <meta
-      name="description"
-      content="AI investigates app failures, runs configured recovery actions automatically and independently verifies the result."
-    />
-    <link rel="icon" href="/roundhouse.svg" />
-    <link rel="stylesheet" href="/replay.css" />
-    <script src="/replay.js" defer></script>
-  </head>
-  <body>
-    <a class="skip" href="#film">Skip to demo</a>
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>Roundhouse — Automatic app recovery</title
+  ><link rel="stylesheet" href="/replay.css" />
+  <main>
     <header>
-      <a class="brand" href="/"
-        ><img
-          src="/roundhouse.svg"
-          width="40"
-          height="40"
-          alt=""
-        />Roundhouse</a
+      <strong
+        ><img class="mark" src="roundhouse.svg" alt="" />Roundhouse</strong
       >
-      <nav><a href="/docs/setup">Docs</a><a href="/console">Sign in</a></nav>
+      <nav>
+        <a href="https://roundhouse.tsc.hk/docs/setup">Docs</a
+        ><a href="https://roundhouse.tsc.hk/console">Sign in ↗</a>
+      </nav>
     </header>
-    <main>
+    <div class="spread">
       <section class="intro">
-        <h1>AI takes the night shift.</h1>
+        <h1>Fix app failures<br />while you’re away.</h1>
         <p>
-          Roundhouse detects failures, investigates the evidence and runs
-          configured fixes while you sleep. A fresh health check decides when
-          the incident closes.
+          Roundhouse monitors your apps. AI investigates failures, runs
+          configured fixes automatically and checks the result.
         </p>
+        <div class="tabs" hidden>
+          <button id="play">Pause</button><button id="replay">Replay</button
+          ><button id="skip">Explore Roundhouse</button>
+        </div>
       </section>
-      <section id="film" aria-label="Recovery demonstration">
-        <div class="slate">
-          <b>The paused export worker</b><span>Illustrated fixture replay</span>
-        </div>
-        <div class="desk" id="desk" hidden>
-          <section class="browser-pane">
-            <div class="windowbar">
-              <span>App preview</span><code>reportroom / reports</code>
-            </div>
-            <div class="report">
-              <b class="wordmark">Reportroom</b>
-              <h2>Sales reports</h2>
-              <p>January 2026 · Demo store</p>
-              <div class="summary">
-                <span>Shop orders<b>165</b></span
-                ><span>Export worker<b id="worker"></b></span>
+      <div class="plate">
+        <figure id="appshot" hidden>
+          <figcaption>
+            Reportroom <span>Northstar shop / Reports</span>
+          </figcaption>
+          <img
+            id="capture"
+            src="signal-shop.webp"
+            alt="Reportroom sales workspace"
+          />
+        </figure>
+        <svg
+          viewBox="0 0 620 330"
+          role="img"
+          aria-label="Architectural plate of a railway roundhouse and its turntable"
+          id="drawing"
+        ></svg
+        ><small>Roundhouse &nbsp;/&nbsp; Engine shed and turntable</small>
+      </div>
+    </div>
+    <article class="record">
+      <div class="line">
+        <b class="run">Seven-day close</b
+        ><b class="site">Roundhouse workspace</b
+        ><span class="run"
+          >Reportroom &nbsp;/&nbsp; Recorded fixture · edited for time</span
+        ><span class="site">Software Corporation (Hong Kong)</span>
+      </div>
+      <div class="panes">
+        <section>
+          <div class="run">
+            <h2>Agent investigation</h2>
+            <div id="agentlog"></div>
+            <div class="summarylog">
+              <div class="event"><time>14:40:22</time>Health probe failed</div>
+              <div class="event">
+                <time>14:40:22</time>Export job queued; worker paused
               </div>
-              <div class="job">
-                <strong>Seven-day sales.csv</strong><span id="job"></span>
-              </div>
-            </div>
-          </section>
-          <section class="agent-pane">
-            <div class="windowbar">
-              <span>Roundhouse agent</span><code>fixture / automatic</code>
-            </div>
-            <div class="agent-body">
-              <small id="agent-status"></small>
-              <h2 id="agent-title"></h2>
-              <p id="agent-note"></p>
-              <code id="agent-tool"></code>
-            </div>
-          </section>
-          <section class="log-pane">
-            <div class="windowbar"><span>Event log</span><code>UTC</code></div>
-            <ol id="feed"></ol>
-          </section>
-          <section class="repo-pane">
-            <div class="windowbar">
-              <span id="source-tab">Incident evidence</span
-              ><code id="file-name"></code>
-            </div>
-            <pre id="source-code"></pre>
-          </section>
-        </div>
-        <div class="screen">
-          <article data-stage="Healthy">
-            <div class="caption">
-              <small>Reportroom / Before the fault</small>
-              <h2>
-                Orders in.<br />
-                Reports out.
-              </h2>
-            </div>
-            <div class="surface">
-              <label>Reportroom</label>
-              <h3>Sales reports</h3>
-              <div class="record">
-                <span>Export worker</span><strong>Running</strong>
-              </div>
-              <div class="record">
-                <span>Shop dataset</span><b>165 orders</b>
-              </div>
-              <div class="record">
-                <span>Health endpoint</span><strong>200 OK</strong>
+              <div class="event">
+                <time>14:40:22</time><code>resume_exports × 1</code>
               </div>
             </div>
-          </article>
-          <article data-stage="Outage">
-            <div class="caption">
-              <small>Reportroom / Outage</small>
-              <h2>The export stalls.</h2>
-            </div>
-            <div class="surface">
-              <label>Reportroom</label>
-              <h3>Sales reports</h3>
-              <div class="record"><span>Seven-day CSV</span><b>Queued</b></div>
-              <div class="record">
-                <span>Export worker</span><em>Paused</em>
-              </div>
-              <div class="record">
-                <span>Health endpoint</span><em>503 Unavailable</em>
-              </div>
-            </div>
-          </article>
-          <article data-stage="Detected">
-            <div class="caption">
-              <small>Roundhouse / Scheduled probe</small>
-              <h2>The agent picks it up.</h2>
-            </div>
-            <div class="surface agent">
-              <label>Incident desk · 13:19:08 UTC</label>
-              <h3>Worker unavailable</h3>
-              <div class="record"><span>Probe</span><em>503</em></div>
-              <div class="record">
-                <span>Incident</span><b>Investigating</b>
-              </div>
-              <p>Inspect the export queue before choosing a recovery action.</p>
-            </div>
-          </article>
-          <article data-stage="Evidence">
-            <div class="caption">
-              <small>Roundhouse / Agent investigation</small>
-              <h2>
-                The queue has work.<br />
-                The worker is off.
-              </h2>
-            </div>
-            <div class="surface agent">
-              <label>Inspection log · export_queue</label>
-              <h3>Queue diagnostic</h3>
-              <div class="record">
-                <code>worker_running</code><em>false</em>
-              </div>
-              <div class="record"><code>jobs[0].state</code><b>queued</b></div>
-              <div class="record"><code>recoveries</code><b>0</b></div>
-            </div>
-          </article>
-          <article data-stage="Repair">
-            <div class="caption">
-              <small>Roundhouse / Automatic recovery</small>
-              <h2>Resume the worker.</h2>
-            </div>
-            <div class="surface agent">
-              <label>Action history · 13:19:08 UTC</label>
-              <h3><code>resume_exports</code></h3>
-              <div class="record"><span>Execution</span><b>Automatic</b></div>
-              <div class="record"><span>Action claims</span><b>1</b></div>
-              <div class="record">
-                <span>Worker response</span><strong>Accepted</strong>
-              </div>
-            </div>
-          </article>
-          <article data-stage="Verified">
-            <div class="caption">
-              <small>Roundhouse / Independent verification</small>
-              <h2>
-                Accepted isn’t healthy.<br />
-                Check again.
-              </h2>
-            </div>
-            <div class="surface">
-              <label>Recovery evidence</label>
-              <h3>Report complete</h3>
-              <div class="record">
-                <span>13:19:08 · First check</span><em>503</em>
-              </div>
-              <div class="record">
-                <span>13:19:38 · Fresh check</span><strong>200 OK</strong>
-              </div>
-              <div class="record">
-                <span>CSV checksum matched</span><b>41 orders · 7 rows</b>
-              </div>
-            </div>
-          </article>
-          <article data-stage="PR preview">
-            <div class="caption">
-              <small>Illustrative handoff / Not a shipped integration</small>
-              <h2>Leave a record for morning.</h2>
-            </div>
-            <div class="surface">
-              <label>Pull request mockup · Not submitted</label>
-              <h3>Document the export outage</h3>
-              <div class="record"><span>Cause</span><b>Paused worker</b></div>
-              <div class="record">
-                <span>Recovery</span><b>Resumed exports</b>
-              </div>
-              <p>No repository was changed. Roundhouse did not open a PR.</p>
-            </div>
-          </article>
-        </div>
-        <div
-          class="destinations"
-          id="destinations"
-          aria-label="Explore Roundhouse"
-        >
-          <section>
-            <small>01 / App workspace</small>
-            <h2>Watch your apps.</h2>
-            <p>
-              Follow health checks across connected apps. Publish a status page
-              for the people who depend on them.
-            </p>
-            <nav>
-              <a href="/console#apps">Monitored apps</a
-              ><a href="/console#status">Status pages</a>
-            </nav>
-          </section>
-          <section>
-            <small>02 / Recovery</small>
-            <h2>Put fixes on call.</h2>
-            <p>
-              Configure an action once. Roundhouse investigates, acts
-              automatically and checks the result. Require approval only where
-              you choose.
-            </p>
-            <nav>
-              <a href="/console?guest=1#systems">Try an isolated drill</a
-              ><a href="/console#apps">Configure automations</a>
-            </nav>
-          </section>
-          <section>
-            <small>03 / Evidence</small>
-            <h2>Trace what happened.</h2>
-            <nav>
-              <a href="/console#analytics">Event analytics</a
-              ><a href="/console#logs">Structured logs</a
-              ><a href="/console#settings">MCP access</a>
-            </nav>
-          </section>
-          <section>
-            <small>04 / Run Roundhouse</small>
-            <h2>Hosted prerelease</h2>
-            <p>
-              Starting at a flat <strong>$20/month</strong>. Bring-your-own-key
-              support is planned, not available yet.
-            </p>
-            <nav>
-              <a href="/console?invite=1">Prerelease signup · invite required</a
-              ><a href="/docs/setup">Self-manage for free</a>
-            </nav>
-          </section>
-        </div>
-        <div id="controls" hidden>
-          <b id="counter"></b>
-          <div>
-            <button id="play">Pause</button><button id="replay">Replay</button
-            ><button id="next">Next scene</button
-            ><button id="skip">Explore Roundhouse</button
-            ><button id="static">Read all scenes</button>
           </div>
-        </div>
-      </section>
-    </main>
-    <footer>Software Corporation (Hong Kong)</footer>
-  </body>
+          <div class="site">
+            <h2>Observe</h2>
+            <nav class="productlinks">
+              <a href="https://roundhouse.tsc.hk/console#analytics"
+                >Event analytics</a
+              ><a href="https://roundhouse.tsc.hk/console#logs"
+                >Structured logs</a
+              ><a href="https://roundhouse.tsc.hk/console#status"
+                >Status pages</a
+              >
+            </nav>
+          </div>
+        </section>
+        <section>
+          <div class="run">
+            <h2 id="filetab">Seven-day close.csv</h2>
+            <ol id="editor">
+              <li>41 orders · 7 rows</li>
+              <li>CSV checksum matched</li>
+            </ol>
+          </div>
+          <div class="site">
+            <h2>Recover</h2>
+            <p>
+              Automatic within the scope you set. Require approval only where
+              you need it.
+            </p>
+            <nav class="productlinks">
+              <a href="https://roundhouse.tsc.hk/console#apps"
+                >Apps & automations</a
+              ><a href="https://roundhouse.tsc.hk/console#settings"
+                >MCP access</a
+              ><a href="https://roundhouse.tsc.hk/console?guest=1#systems"
+                >Try the isolated drill</a
+              >
+            </nav>
+          </div>
+        </section>
+        <section>
+          <div class="run">
+            <h2>Independent checks</h2>
+            <div id="probes"></div>
+            <div class="summarylog">
+              <div class="checks">
+                <strong>503</strong><i></i><strong>200</strong>
+              </div>
+              <small>14:40:22 → 14:40:52 UTC</small>
+              <p>
+                The first check still failed. Thirty seconds later, the probe
+                passed and the CSV checksum matched.
+              </p>
+            </div>
+          </div>
+          <div class="site">
+            <h2>Hosted prerelease</h2>
+            <p class="price">$20<small> / month</small></p>
+            <p>Starting flat rate. BYOK is planned.</p>
+            <nav class="productlinks">
+              <a href="https://roundhouse.tsc.hk/console?invite=1"
+                >Sign up with an invite</a
+              ><a href="https://roundhouse.tsc.hk/docs/setup"
+                >Self-manage for free</a
+              >
+            </nav>
+          </div>
+        </section>
+      </div>
+    </article>
+    <details id="transcript">
+      <summary>Read the incident record</summary>
+      <p>
+        The isolated export worker stopped with a seven-day sales report queued.
+        A scheduled probe returned 503. The fixture agent inspected the queue
+        and requested one automatic restart of exports. The action was accepted,
+        but the first independent check still returned 503. Thirty seconds later
+        a fresh probe returned 200; the report contained 41 orders across seven
+        rows and its downloaded checksum matched. The PR shown in playback is an
+        illustration, not a submitted change.
+      </p>
+    </details>
+    <footer>
+      <span>Software Corporation (Hong Kong)</span><span>Roundhouse</span>
+    </footer>
+  </main>
+  <script src="/replay.js"></script>
 </html>

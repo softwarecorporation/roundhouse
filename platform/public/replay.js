@@ -1,184 +1,292 @@
-const scenes = [...document.querySelectorAll("[data-stage]")];
-const byId = (id) => document.getElementById(id);
-const motion = matchMedia("(prefers-reduced-motion: reduce)");
-let index = 0,
-  reading = motion.matches,
-  playing = !reading,
-  timer;
-const beats = [
+// Project the roundhouse stalls, rails and bridge onto one measured plate.
+const shapes = [];
+const proj = (x, y, z = 0) => [
+  303 + x * 0.94 + y * 0.25,
+  220 + y * 0.49 - x * 0.12 - z,
+];
+const pt = (r, a, z = 0, side = 0) => {
+  let t = (a * Math.PI) / 180;
+  return proj(
+    Math.sin(t) * r + side * Math.cos(t),
+    -Math.cos(t) * r + side * Math.sin(t),
+    z,
+  );
+};
+function path(p, fill = "none", stroke = "#475872", sw = 1) {
+  shapes.push(
+    `<path d="M${p.map((x) => x.join(",")).join(" L")}${fill === "none" ? "" : " Z"}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`,
+  );
+}
+const arc = (r, a, b, z = 0) =>
+  Array.from({ length: 61 }, (_, i) => pt(r, a + ((b - a) * i) / 60, z));
+for (let a = -99; a <= 108; a += 9) {
+  path([pt(64, a, 0, -3), pt(258, a, 0, -3)], "none", "#8597ae", 0.8);
+  path([pt(64, a, 0, 3), pt(258, a, 0, 3)], "none", "#8597ae", 0.8);
+  for (let r = 72; r < 250; r += 9)
+    path([pt(r, a, 0, -5), pt(r, a, 0, 5)], "none", "#909ca8", 0.8);
+}
+for (let a = -103.5; a < 108; a += 9) {
+  let b = a + 9,
+    mid = a + 4.5;
+  path([pt(235, a), pt(235, b), pt(235, b, 40), pt(235, a, 40)], "#a5b2bf");
+  path([pt(126, a), pt(126, b), pt(126, b, 35), pt(126, a, 35)], "#203a54");
+  path(
+    [
+      pt(126, a + 1, 1),
+      pt(126, b - 1, 1),
+      pt(126, b - 1, 27),
+      pt(126, mid, 31),
+      pt(126, a + 1, 27),
+    ],
+    "#101f30",
+    "#91a3b3",
+    0.65,
+  );
+  path(
+    [pt(126, a, 35), pt(235, a, 40), pt(235, mid, 53), pt(126, mid, 46)],
+    "#aebfd1",
+  );
+  path(
+    [pt(126, mid, 46), pt(235, mid, 53), pt(235, b, 40), pt(126, b, 35)],
+    "#7087a1",
+  );
+  for (let j = 1; j < 8; j++) {
+    let r = 126 + j * 13;
+    path(
+      [
+        pt(r, a, 35 + (r - 126) * 0.046),
+        pt(r, mid, 46 + (r - 126) * 0.064),
+        pt(r, b, 35 + (r - 126) * 0.046),
+      ],
+      "none",
+      "#d9e2e9",
+      0.65,
+    );
+  }
+  path(
+    [
+      pt(160, a + 2, 41),
+      pt(195, a + 2, 43),
+      pt(195, mid, 50),
+      pt(160, mid, 48),
+    ],
+    "#dae3eb",
+    "#435c75",
+    0.65,
+  );
+}
+for (let side of [-3, 3])
+  path([pt(64, 164, 0, side), pt(356, 164, 0, side)], "none", "#667b8e", 1.3);
+path(arc(64, 0, 360), "#bac9d4");
+path(arc(58, 0, 360), "#ced9e1");
+path(
   [
-    "Watching Reportroom",
-    "Waiting for the next scheduled check.",
-    "GET /health",
-    "baseline · monitor ready",
+    pt(61, 164, 2, -7),
+    pt(61, 164, 2, 7),
+    pt(-61, 164, 2, 7),
+    pt(-61, 164, 2, -7),
+  ],
+  "#c0643d",
+  "#654235",
+);
+for (let j = -54; j < 56; j += 9)
+  path([pt(j, 164, 4, -6), pt(j, 164, 4, 6)], "none", "#e8c0a4");
+document.querySelector("#drawing").innerHTML = shapes.join("");
+const $ = (s) => document.querySelector(s),
+  motion = matchMedia("(prefers-reduced-motion: reduce)");
+const original = $(".intro").querySelector("h1").innerHTML,
+  description = $(".intro p").textContent;
+const shots = [
+  [
+    "Fix app failures while you’re away.",
+    description,
+    "shop",
+    "Monitor attached",
+    "monitor.conf",
+    ["target   Reportroom", "check    export worker", "policy   automatic"],
+    3200,
   ],
   [
-    "Watching Reportroom",
-    "An export is queued. The worker has stopped.",
-    "GET /health",
-    "13:18:38 · seven-day export queued",
+    "The export stalls.",
+    "Seven-day close is queued. With its worker paused, Reportroom cannot generate the file.",
+    "queue",
+    "Report queued",
+    "queue.json",
+    ["{", '  "state": "queued",', '  "period": 7', "}"],
+    3200,
   ],
   [
-    "Investigating a 503",
-    "The scheduled probe failed. Inspect the queue before acting.",
-    "inspect → export_queue",
-    "13:19:08 · scheduled probe → 503",
+    "Find the failed worker.",
+    "A scheduled probe returns 503. The agent inspects the queue before choosing an action.",
+    "queue",
+    "Probe failed · inspecting export_queue",
+    "inspection.json",
+    ['"worker_running": false,', '"recoveries": 0,', '"state": "queued"'],
+    4000,
   ],
   [
-    "Found a paused worker",
-    "The report is queued but no worker is taking jobs.",
-    "export_queue → worker_running: false",
-    "13:19:08 · inspect → worker paused",
+    "Resume exports.",
+    "The fixture agent requests the configured action once. No approval click is needed.",
+    "queue",
+    "resume_exports × 1 · accepted",
+    "action.json",
+    ['"action": "resume_exports",', '"outcome": "accepted"'],
+    3200,
   ],
   [
-    "Resuming exports",
-    "Automatic policy permits one resume. Acceptance is not proof of recovery.",
-    "resume_exports → accepted",
-    "13:19:08 · resume accepted; fresh probe → 503",
+    "Check the repair.",
+    "The action was accepted, but the first fresh health check still fails. The incident stays open.",
+    "queue",
+    "Fresh check still unhealthy",
+    "probe.json",
+    ['"healthy": false,', '"status": 503'],
+    3000,
   ],
   [
-    "Recovery verified",
-    "A later probe passed. The CSV checksum matches the completed job.",
-    "fresh probe → 200 OK",
-    "13:19:38 · healthy → CSV verified",
+    "Open the finished file.",
+    "Thirty seconds later the probe passes. The downloaded report matches its checksum: 41 orders, seven rows.",
+    "ready",
+    "CSV checksum verified",
+    "Seven-day close.csv",
+    [
+      "date,order_count,revenue_cents",
+      "2026-01-24,8,50523",
+      "2026-01-25,3,15708",
+      "2026-01-26,4,22324",
+      "2026-01-27,5,30045",
+      "2026-01-28,6,38539",
+      "2026-01-29,7,45731",
+      "2026-01-30,8,57099",
+    ],
+    4200,
   ],
   [
-    "Incident closed",
-    "The final pane illustrates a PR handoff. No PR was opened.",
-    "verification complete",
-    null,
+    "Leave a repair note.",
+    "An illustrated PR shows the cause, action and evidence together. No repository was changed.",
+    "ready",
+    "Incident resolved",
+    "PR preview · not submitted",
+    [
+      "+ Paused export worker",
+      "+ Resumed exports once",
+      "+ Fresh probe: HTTP 200",
+      "+ CSV: 41 orders / 7 rows",
+    ],
+    3200,
   ],
 ];
-function paintDesk() {
-  const [title, note, tool] = beats[index];
-  byId("desk").dataset.focus = [
-    "app",
-    "app",
-    "agent",
-    "log",
-    "agent",
-    "app",
-    "repo",
-  ][index];
-  const values = {
-    worker:
-      index === 0 || index >= 5
-        ? "Running"
-        : index === 4
-          ? "Resuming"
-          : "Paused",
-    job:
-      index === 0
-        ? "Ready for export"
-        : index >= 5
-          ? "Completed · 7 rows"
-          : "Queued",
-    "agent-title": title,
-    "agent-note": note,
-    "agent-tool": tool,
-    "agent-status":
-      index < 2
-        ? "Monitoring"
-        : index < 5
-          ? "Incident b4441d05"
-          : "Resolved · b4441d05",
-    "source-tab":
-      index === 6
-        ? "Pull request mockup · Not submitted"
-        : index < 3
-          ? "Monitor configuration"
-          : index >= 5
-            ? "Verified artifact"
-            : "Captured diagnostic",
-    "file-name":
-      index === 6
-        ? "incident.md"
-        : index < 3
-          ? "Reportroom"
-          : index >= 5
-            ? "sales.csv"
-            : "export_queue",
-    "source-code":
-      index === 6
-        ? "+ Cause: export worker paused\n+ Action: resume_exports × 1\n+ Verification: HTTP 200\n+ CSV: 41 orders / 7 rows\n\nIllustration only. No repository changed."
-        : index >= 5
-          ? "state          completed\norder_count    41\nrows           7\nsha256         2dd6cda8…f0acb11f"
-          : index >= 3
-            ? "worker_running    false\nrecoveries        0\njobs[0].state     queued\nperiod            7 days"
-            : "check       HTTP health\ninspect     export_queue\naction      resume_exports\npolicy      automatic",
-  };
-  for (const [id, text] of Object.entries(values)) byId(id).textContent = text;
-  byId("feed").replaceChildren(
-    ...beats
-      .slice(0, index + 1)
-      .filter((b) => b[3])
-      .map((b) => {
-        const li = document.createElement("li");
-        li.textContent = b[3];
-        return li;
-      })
-      .reverse(),
+let n = 0,
+  running = !motion.matches,
+  timer,
+  remaining,
+  started;
+const title = $("h1"),
+  intro = $(".intro p");
+function rows(parent, strings) {
+  parent.replaceChildren(
+    ...strings.map((s) => {
+      const el = document.createElement(parent.tagName === "OL" ? "li" : "div");
+      el.textContent = s;
+      return el;
+    }),
   );
+}
+function schedule() {
+  clearTimeout(timer);
+  if (running && !document.hidden) {
+    started = performance.now();
+    timer = setTimeout(() => {
+      n++;
+      render();
+    }, remaining);
+  }
+}
+function freeze() {
+  clearTimeout(timer);
+  if (started != null) {
+    remaining = Math.max(0, remaining - (performance.now() - started));
+    started = null;
+  }
 }
 function render() {
   clearTimeout(timer);
-  const ended = index === scenes.length;
-  document.body.classList.toggle("watching", !reading);
-  byId("destinations").hidden = !ended && !reading;
-  byId("desk").hidden = reading || ended;
-  document.querySelector(".screen").hidden = !reading;
-  if (!reading && !ended) paintDesk();
-  document.querySelector(".slate b").textContent =
-    ended && !reading ? "Roundhouse for your apps" : "The paused export worker";
-  document.querySelector(".slate span").textContent =
-    ended && !reading ? "Workspace guide" : "Illustrated fixture replay";
-  byId("counter").textContent = reading
-    ? "Complete sequence"
-    : ended
-      ? "Software Corporation (Hong Kong)"
-      : `${index + 1} / ${scenes.length} · ${scenes[index].dataset.stage}`;
-  byId("play").textContent = playing ? "Pause" : "Play";
-  byId("static").textContent = reading ? "View player" : "Read all scenes";
-  for (const id of ["play", "replay", "next", "skip"])
-    byId(id).hidden = reading;
-  for (const id of ["play", "next", "skip"]) byId(id).hidden = ended || reading;
-  if (playing && !document.hidden)
-    timer = setTimeout(() => {
-      index++;
-      if (index === scenes.length) playing = false;
-      render();
-    }, 3500);
+  started = null;
+  const site = n === shots.length;
+  document.body.classList.toggle("product", site);
+  document.body.classList.toggle("rolling", !site);
+  document.body.dataset.scene = n;
+  $("#appshot").hidden = site;
+  $("#play").hidden = $("#skip").hidden = site;
+  $("#play").textContent = running ? "Pause" : "Play";
+  $("#replay").textContent = site ? "Replay incident" : "Replay";
+  if (site) {
+    running = false;
+    title.innerHTML = original;
+    intro.textContent = description;
+    return;
+  }
+  const [headline, note, image, , file, lines, duration] = shots[n];
+  title.textContent = headline;
+  intro.textContent = note;
+  $("#capture").src = `/signal-${image}.webp`;
+  $("#capture").alt = {
+    shop: "Reportroom sales workspace",
+    queue: "Seven-day close is generating",
+    ready: "Seven-day close ready with CSV output",
+  }[image];
+  $(".line b").textContent = `Seven-day close · ${n + 1} / ${shots.length}`;
+  $("#filetab").textContent = file;
+  rows($("#editor"), lines);
+  rows(
+    $("#agentlog"),
+    shots.slice(Math.max(0, n - 2), n + 1).map((s) => s[3]),
+  );
+  rows(
+    $("#probes"),
+    n >= 5
+      ? ["14:40:22 UTC  ·  503", "14:40:52 UTC  ·  200 OK"]
+      : n === 4
+        ? ["14:40:22 UTC  ·  503", "Awaiting fresh probe"]
+        : n >= 2
+          ? ["Scheduled probe  ·  503"]
+          : ["Scheduled monitor armed"],
+  );
+  remaining = duration;
+  schedule();
 }
-byId("play").onclick = () => {
-  playing = !playing;
+function end() {
+  n = shots.length;
+  render();
+}
+$(".tabs").hidden = false;
+$("#play").onclick = () => {
+  if (running) freeze();
+  running = !running;
+  $("#play").textContent = running ? "Pause" : "Play";
+  schedule();
+};
+$("#replay").onclick = () => {
+  n = 0;
+  running = true;
   render();
 };
-byId("replay").onclick = () => {
-  index = 0;
-  playing = true;
-  render();
+$("#skip").onclick = () => {
+  end();
+  $("#replay").focus();
 };
-byId("next").onclick = () => {
-  index++;
-  playing = false;
-  render();
-};
-byId("skip").onclick = () => {
-  index = scenes.length;
-  playing = false;
-  render();
-  byId("destinations").querySelector("a").focus();
-};
-byId("static").onclick = () => {
-  reading = !reading;
-  playing = false;
-  render();
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) freeze();
+  else schedule();
+});
+$("#transcript").ontoggle = () => {
+  if ($("#transcript").open && running) {
+    freeze();
+    running = false;
+    $("#play").textContent = "Play";
+  }
 };
 motion.onchange = () => {
-  reading = motion.matches;
-  playing = false;
-  render();
+  if (motion.matches) end();
 };
-document.addEventListener("visibilitychange", render);
-byId("controls").hidden = false;
-render();
+if (motion.matches) end();
+else render();

@@ -288,3 +288,349 @@ button:focus-visible {
     font-size: 42px;
   }
 }
+.watching {
+  background: #151e22;
+  color: #eef4f3;
+}
+.watching header,
+.watching main {
+  width: 100%;
+  max-width: none;
+}
+.watching header {
+  height: 52px;
+  padding: 0 2vw;
+  border-color: #425056;
+}
+.watching header img {
+  filter: brightness(0) invert(1);
+}
+.watching .intro {
+  display: none;
+}
+.watching #film {
+  display: flex;
+  flex-direction: column;
+  height: calc(100svh - 52px);
+  min-height: 560px;
+}
+.watching .slate,
+.watching #controls {
+  background: #151e22;
+  padding-inline: 2vw;
+}
+.watching .slate {
+  border-bottom: 1px solid #49565c;
+}
+.watching .after {
+  padding-inline: 4vw;
+}
+.watching footer {
+  color: #bdc8c9;
+}
+.desk {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  grid-template-rows: 1.15fr 1fr;
+  gap: 3px;
+  background: #435058;
+  padding: 3px;
+  transition:
+    grid-template-columns 0.65s ease,
+    grid-template-rows 0.65s ease;
+}
+.desk[data-focus="agent"],
+.desk[data-focus="repo"] {
+  grid-template-columns: 0.84fr 1.36fr;
+}
+.desk[data-focus="repo"],
+.desk[data-focus="log"] {
+  grid-template-rows: 0.9fr 1.26fr;
+}
+.desk section {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+.windowbar {
+  min-height: 37px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  background: #263338;
+  color: #dfe7e8;
+  font-size: 13px;
+}
+.windowbar code {
+  color: #c0cecf;
+  font-size: 12px;
+}
+.browser-pane {
+  background: #f4f7f9;
+  color: #182633;
+}
+.browser-pane .windowbar {
+  background: #d7e0e7;
+  color: #293946;
+}
+.browser-pane .windowbar code {
+  color: #455560;
+}
+.report,
+.agent-body {
+  padding: clamp(16px, 2.3vw, 42px);
+}
+.wordmark {
+  color: #214a9b;
+}
+.report h2,
+.agent-body h2 {
+  font-weight: 520;
+  font-size: clamp(30px, 3.1vw, 54px);
+  margin: 9px 0 0;
+  line-height: 1.05;
+}
+.report p {
+  margin: 5px 0;
+  color: #53616d;
+}
+.summary {
+  display: flex;
+  gap: 4vw;
+  margin: 16px 0;
+}
+.summary span {
+  display: grid;
+  color: #53616d;
+  font-size: 13px;
+}
+.summary b {
+  font-size: clamp(22px, 2vw, 34px);
+  color: #1d3343;
+}
+.job {
+  border-block: 1px solid #bcc9d0;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 0;
+}
+.agent-pane {
+  background: #143b35;
+}
+.agent-body small {
+  color: #b4e1cc;
+}
+.agent-body p {
+  max-width: 46ch;
+}
+.agent-body code {
+  display: block;
+  color: #d8f7bb;
+  border-top: 1px solid #5a7972;
+  padding-top: 10px;
+}
+.log-pane {
+  background: #172126;
+}
+.log-pane ol {
+  padding: 0 16px;
+  list-style: none;
+}
+.log-pane li {
+  font: 14px/1.5 monospace;
+  padding: 5px 0;
+  border-bottom: 1px solid #334347;
+}
+.log-pane li:first-child {
+  color: #e9cf82;
+}
+.repo-pane {
+  background: #20303c;
+}
+.repo-pane pre {
+  color: #d6e5ee;
+  padding: 5px 18px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 15px/1.7 monospace;
+}
+.desk[data-focus="repo"] .repo-pane pre {
+  color: #bce8b6;
+}
+.desk[data-focus="app"] .browser-pane,
+.desk[data-focus="agent"] .agent-pane,
+.desk[data-focus="log"] .log-pane,
+.desk[data-focus="repo"] .repo-pane {
+  outline: 2px solid #f4d988;
+  outline-offset: -2px;
+}
+@media (max-width: 650px) {
+  .watching #film {
+    min-height: 600px;
+  }
+  .desk,
+  .desk[data-focus] {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1.3fr 1fr;
+  }
+  .windowbar {
+    display: block;
+    font-size: 12px;
+    padding: 5px 9px;
+  }
+  .windowbar code {
+    display: block;
+    font-size: 10px;
+  }
+  .report,
+  .agent-body {
+    padding: 12px;
+  }
+  .report h2,
+  .agent-body h2 {
+    font-size: 23px;
+  }
+  .report p,
+  .agent-body p,
+  .job {
+    font-size: 13px;
+  }
+  .summary {
+    display: grid;
+    gap: 3px;
+  }
+  .summary span {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .summary b {
+    font-size: 15px;
+  }
+  .job {
+    display: grid;
+  }
+  .agent-body code,
+  .log-pane li,
+  .repo-pane pre {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+  .repo-pane pre,
+  .log-pane ol {
+    padding-inline: 9px;
+  }
+  .watching header {
+    padding-inline: 12px;
+  }
+  .watching #controls > div {
+    gap: 0;
+  }
+  .watching #controls button {
+    min-height: 44px;
+  }
+  .watching .slate {
+    font-size: 13px;
+  }
+  .desk[data-focus="repo"],
+  .desk[data-focus="log"] {
+    grid-template-rows: 1fr 1.3fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .desk {
+    transition: none;
+  }
+}
+.destinations {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: 0.84fr 1.36fr;
+  grid-template-rows: 0.9fr 1.26fr;
+  gap: 3px;
+  background: #435058;
+  padding: 3px;
+}
+.destinations section {
+  min-width: 0;
+  overflow: auto;
+  padding: clamp(15px, 2.5vw, 40px);
+  background: #f4f7f9;
+  color: #182633;
+}
+.destinations section:nth-child(2) {
+  background: #143b35;
+  color: #edf6ef;
+}
+.destinations section:nth-child(3) {
+  background: #172126;
+  color: #edf6ef;
+}
+.destinations section:nth-child(4) {
+  background: #20303c;
+  color: #edf6ef;
+}
+.destinations h2 {
+  font-size: clamp(22px, 3.4vw, 56px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-weight: 530;
+  margin: 12px 0;
+}
+.destinations p {
+  max-width: 56ch;
+  margin: 8px 0;
+}
+.destinations nav {
+  display: grid;
+  max-width: 34em;
+}
+.destinations a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  border-bottom: 1px solid #79898e;
+  text-decoration: none;
+}
+.destinations a::after {
+  content: "↗";
+}
+.destinations a:hover {
+  text-decoration: underline;
+}
+.watching .brand {
+  font-size: 22px;
+}
+.watching .skip:focus {
+  color: black;
+  z-index: 2;
+}
+@media (max-width: 650px) {
+  .destinations {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+  }
+  .destinations section {
+    padding: 12px;
+    font-size: 14px;
+  }
+  .destinations a {
+    min-height: 44px;
+  }
+  .watching #film:has(.destinations:not([hidden])) {
+    height: auto;
+    min-height: calc(100svh - 52px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .destinations:not([hidden]) section {
+    animation: arrive 0.35s ease-out;
+  }
+}

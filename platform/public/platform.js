@@ -886,6 +886,7 @@
       if (error.status === 401) {
         clearSession();
         authControls(false);
+        if (new URLSearchParams(location.search).get("invite") === "1") registrationMode(true);
         if (new URLSearchParams(location.search).get("guest") === "1") await authenticate("guest", {});
       } else {
         clearSession(error.message);

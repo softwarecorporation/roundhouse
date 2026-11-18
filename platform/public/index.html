@@ -38,6 +38,47 @@
         <div class="slate">
           <b>The paused export worker</b><span>Illustrated fixture replay</span>
         </div>
+        <div class="desk" id="desk" hidden>
+          <section class="browser-pane">
+            <div class="windowbar">
+              <span>App preview</span><code>reportroom / reports</code>
+            </div>
+            <div class="report">
+              <b class="wordmark">Reportroom</b>
+              <h2>Sales reports</h2>
+              <p>January 2026 · Demo store</p>
+              <div class="summary">
+                <span>Shop orders<b>165</b></span
+                ><span>Export worker<b id="worker"></b></span>
+              </div>
+              <div class="job">
+                <strong>Seven-day sales.csv</strong><span id="job"></span>
+              </div>
+            </div>
+          </section>
+          <section class="agent-pane">
+            <div class="windowbar">
+              <span>Roundhouse agent</span><code>fixture / automatic</code>
+            </div>
+            <div class="agent-body">
+              <small id="agent-status"></small>
+              <h2 id="agent-title"></h2>
+              <p id="agent-note"></p>
+              <code id="agent-tool"></code>
+            </div>
+          </section>
+          <section class="log-pane">
+            <div class="windowbar"><span>Event log</span><code>UTC</code></div>
+            <ol id="feed"></ol>
+          </section>
+          <section class="repo-pane">
+            <div class="windowbar">
+              <span id="source-tab">Incident evidence</span
+              ><code id="file-name"></code>
+            </div>
+            <pre id="source-code"></pre>
+          </section>
+        </div>
         <div class="screen">
           <article data-stage="Healthy">
             <div class="caption">
@@ -164,32 +205,67 @@
             </div>
           </article>
         </div>
+        <div
+          class="destinations"
+          id="destinations"
+          aria-label="Explore Roundhouse"
+        >
+          <section>
+            <small>01 / App workspace</small>
+            <h2>Watch your apps.</h2>
+            <p>
+              Follow health checks across connected apps. Publish a status page
+              for the people who depend on them.
+            </p>
+            <nav>
+              <a href="/console#apps">Monitored apps</a
+              ><a href="/console#status">Status pages</a>
+            </nav>
+          </section>
+          <section>
+            <small>02 / Recovery</small>
+            <h2>Put fixes on call.</h2>
+            <p>
+              Configure an action once. Roundhouse investigates, acts
+              automatically and checks the result. Require approval only where
+              you choose.
+            </p>
+            <nav>
+              <a href="/console?guest=1#systems">Try an isolated drill</a
+              ><a href="/console#apps">Configure automations</a>
+            </nav>
+          </section>
+          <section>
+            <small>03 / Evidence</small>
+            <h2>Trace what happened.</h2>
+            <nav>
+              <a href="/console#analytics">Event analytics</a
+              ><a href="/console#logs">Structured logs</a
+              ><a href="/console#settings">MCP access</a>
+            </nav>
+          </section>
+          <section>
+            <small>04 / Run Roundhouse</small>
+            <h2>Hosted prerelease</h2>
+            <p>
+              Starting at a flat <strong>$20/month</strong>. Bring-your-own-key
+              support is planned, not available yet.
+            </p>
+            <nav>
+              <a href="/console?invite=1">Prerelease signup · invite required</a
+              ><a href="/docs/setup">Self-manage for free</a>
+            </nav>
+          </section>
+        </div>
         <div id="controls" hidden>
           <b id="counter"></b>
           <div>
             <button id="play">Pause</button><button id="replay">Replay</button
             ><button id="next">Next scene</button
-            ><button id="skip">Skip to end</button
+            ><button id="skip">Explore Roundhouse</button
             ><button id="static">Read all scenes</button>
           </div>
         </div>
-      </section>
-      <section class="after">
-        <div>
-          <h2>Run the recovery yourself.</h2>
-          <p>
-            The replay reconstructs a recorded, isolated fixture drill. New
-            actions run automatically; turn on approval only where you need it.
-          </p>
-          <a href="/console?guest=1#systems">Start an isolated drill →</a>
-        </div>
-        <nav aria-label="Workspace">
-          <a href="/console#apps">Apps & automations</a
-          ><a href="/console#analytics">Event analytics</a
-          ><a href="/console#logs">Structured logs</a
-          ><a href="/console#status">Status pages</a
-          ><a href="/console#settings">MCP access</a>
-        </nav>
       </section>
     </main>
     <footer>Software Corporation (Hong Kong)</footer>

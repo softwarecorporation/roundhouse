@@ -220,8 +220,7 @@ async function route(request, env) {
   }
   if (request.method !== 'GET') return json({ error: 'Not found' }, 404);
   const demo = url.origin === env.DEMO_ORIGIN && env.DEMO_ORIGIN !== env.PUBLIC_ORIGIN;
-  if (!demo && ['/signal-shop.webp', '/signal-queue.webp', '/signal-ready.webp'].includes(path)) return env.ASSETS.fetch(new Request(new URL(path, env.PUBLIC_ORIGIN), request));
-  const assets = demo ? { '/': '/reportroom/index.html', '/app.js': '/reportroom/app.js', '/style.css': '/reportroom/style.css', '/archivo.ttf': '/reportroom/archivo.ttf', '/roundhouse.svg': '/roundhouse.svg' } : { '/': '/index.html', '/console': '/console.html', '/replay.js': '/replay.js', '/replay.css': '/replay.css', '/platform.js': '/platform.js', '/platform.css': '/platform.css', '/roundhouse-night.webp': '/roundhouse-night.webp', '/tracker.js': '/tracker.js', '/docs/setup': '/setup.html', '/archivo.ttf': '/archivo.ttf', '/roundhouse.svg': '/roundhouse.svg' };
+  const assets = demo ? { '/': '/reportroom/index.html', '/app.js': '/reportroom/app.js', '/style.css': '/reportroom/style.css', '/archivo.ttf': '/reportroom/archivo.ttf', '/roundhouse.svg': '/roundhouse.svg' } : { '/': '/index.html', '/console': '/console.html', '/frontpage.css': '/frontpage.css', '/engine-shed.svg': '/engine-shed.svg', '/platform.js': '/platform.js', '/platform.css': '/platform.css', '/tracker.js': '/tracker.js', '/docs/setup': '/setup.html', '/archivo.ttf': '/archivo.ttf', '/roundhouse.svg': '/roundhouse.svg' };
   if (!Object.hasOwn(assets, path)) return json({ error: 'Not found' }, 404);
   return env.ASSETS.fetch(new Request(new URL(assets[path], env.PUBLIC_ORIGIN), request));
 }

@@ -4,16 +4,13 @@
     name="viewport"
     content="width=device-width,initial-scale=1"
   /><title>Roundhouse — Automatic app recovery</title
-  ><link rel="stylesheet" href="/replay.css" />
+  ><link rel="stylesheet" href="/frontpage.css" />
   <main>
     <header>
       <strong
         ><img class="mark" src="roundhouse.svg" alt="" />Roundhouse</strong
       >
-      <nav>
-        <a href="https://roundhouse.tsc.hk/docs/setup">Docs</a
-        ><a href="https://roundhouse.tsc.hk/console">Sign in ↗</a>
-      </nav>
+      <nav><a href="/docs/setup">Docs</a><a href="/console">Sign in ↗</a></nav>
     </header>
     <div class="spread">
       <section class="intro">
@@ -22,75 +19,31 @@
           Roundhouse monitors your apps. AI investigates failures, runs
           configured fixes automatically and checks the result.
         </p>
-        <div class="tabs" hidden>
-          <button id="play">Pause</button><button id="replay">Replay</button
-          ><button id="skip">Explore Roundhouse</button>
-        </div>
       </section>
       <div class="plate">
-        <figure id="appshot" hidden>
-          <figcaption>
-            Reportroom <span>Northstar shop / Reports</span>
-          </figcaption>
-          <img
-            id="capture"
-            src="signal-shop.webp"
-            alt="Reportroom sales workspace"
-          />
-        </figure>
-        <svg
-          viewBox="0 0 620 330"
-          role="img"
-          aria-label="Architectural plate of a railway roundhouse and its turntable"
-          id="drawing"
-        ></svg
-        ><small>Roundhouse &nbsp;/&nbsp; Engine shed and turntable</small>
+        <img
+          src="/engine-shed.svg"
+          alt="Architectural plate of a railway roundhouse and its turntable"
+        />
+        <small>Roundhouse &nbsp;/&nbsp; Engine shed and turntable</small>
       </div>
     </div>
     <article class="record">
       <div class="line">
-        <b class="run">Seven-day close</b
-        ><b class="site">Roundhouse workspace</b
-        ><span class="run"
-          >Reportroom &nbsp;/&nbsp; Recorded fixture · edited for time</span
-        ><span class="site">Software Corporation (Hong Kong)</span>
+        <b>Roundhouse workspace</b><span>Software Corporation (Hong Kong)</span>
       </div>
       <div class="panes">
         <section>
-          <div class="run">
-            <h2>Agent investigation</h2>
-            <div id="agentlog"></div>
-            <div class="summarylog">
-              <div class="event"><time>14:40:22</time>Health probe failed</div>
-              <div class="event">
-                <time>14:40:22</time>Export job queued; worker paused
-              </div>
-              <div class="event">
-                <time>14:40:22</time><code>resume_exports × 1</code>
-              </div>
-            </div>
-          </div>
           <div class="site">
             <h2>Observe</h2>
             <nav class="productlinks">
-              <a href="https://roundhouse.tsc.hk/console#analytics"
-                >Event analytics</a
-              ><a href="https://roundhouse.tsc.hk/console#logs"
-                >Structured logs</a
-              ><a href="https://roundhouse.tsc.hk/console#status"
-                >Status pages</a
-              >
+              <a href="/console#analytics">Event analytics</a
+              ><a href="/console#logs">Structured logs</a
+              ><a href="/console#status">Status pages</a>
             </nav>
           </div>
         </section>
         <section>
-          <div class="run">
-            <h2 id="filetab">Seven-day close.csv</h2>
-            <ol id="editor">
-              <li>41 orders · 7 rows</li>
-              <li>CSV checksum matched</li>
-            </ol>
-          </div>
           <div class="site">
             <h2>Recover</h2>
             <p>
@@ -98,61 +51,27 @@
               you need it.
             </p>
             <nav class="productlinks">
-              <a href="https://roundhouse.tsc.hk/console#apps"
-                >Apps & automations</a
-              ><a href="https://roundhouse.tsc.hk/console#settings"
-                >MCP access</a
-              ><a href="https://roundhouse.tsc.hk/console?guest=1#systems"
-                >Try the isolated drill</a
-              >
+              <a href="/console#apps">Apps & automations</a
+              ><a href="/console#settings">MCP access</a
+              ><a href="/console?guest=1#systems">Try the isolated drill</a>
             </nav>
           </div>
         </section>
         <section>
-          <div class="run">
-            <h2>Independent checks</h2>
-            <div id="probes"></div>
-            <div class="summarylog">
-              <div class="checks">
-                <strong>503</strong><i></i><strong>200</strong>
-              </div>
-              <small>14:40:22 → 14:40:52 UTC</small>
-              <p>
-                The first check still failed. Thirty seconds later, the probe
-                passed and the CSV checksum matched.
-              </p>
-            </div>
-          </div>
           <div class="site">
             <h2>Hosted prerelease</h2>
             <p class="price">$20<small> / month</small></p>
             <p>Starting flat rate. BYOK is planned.</p>
             <nav class="productlinks">
-              <a href="https://roundhouse.tsc.hk/console?invite=1"
-                >Sign up with an invite</a
-              ><a href="https://roundhouse.tsc.hk/docs/setup"
-                >Self-manage for free</a
-              >
+              <a href="/console?invite=1">Sign up with an invite</a
+              ><a href="/docs/setup">Self-manage for free</a>
             </nav>
           </div>
         </section>
       </div>
     </article>
-    <details id="transcript">
-      <summary>Read the incident record</summary>
-      <p>
-        The isolated export worker stopped with a seven-day sales report queued.
-        A scheduled probe returned 503. The fixture agent inspected the queue
-        and requested one automatic restart of exports. The action was accepted,
-        but the first independent check still returned 503. Thirty seconds later
-        a fresh probe returned 200; the report contained 41 orders across seven
-        rows and its downloaded checksum matched. The PR shown in playback is an
-        illustration, not a submitted change.
-      </p>
-    </details>
     <footer>
       <span>Software Corporation (Hong Kong)</span><span>Roundhouse</span>
     </footer>
   </main>
-  <script src="/replay.js"></script>
 </html>

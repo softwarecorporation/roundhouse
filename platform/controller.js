@@ -2,6 +2,7 @@
 import { Roundhouse } from '../npm/dist/workers.js';
 import { core } from '../npm/dist/core.js';
 import { appConfig, appMonitors, publicEndpoint } from './apps.js';
+import { pausedWorker } from '../examples/reportroom/fixture.js';
 export { ReportApplication } from '../examples/reportroom/app.js';
 
 export const limits = { daily_budget_microusd: 500000, reserve_per_request_microusd: 50000,
@@ -69,6 +70,7 @@ export class TenantController extends Roundhouse {
     return super.clean(text);
   }
   async investigate(i, m) {
+    this.audit(i.id, 'provider_mode', { mode: this.mode() });
     if (m.id !== 'reportroom' && this.mode() !== 'anthropic') {
       this.audit(i.id, 'investigation_stopped', { reason: 'External investigation requires Anthropic mode; fixture cannot inspect or recover connected apps' });
       this.state(i.id, 'needs_attention');
@@ -83,10 +85,11 @@ export class TenantController extends Roundhouse {
       return fetch(url, { ...init, redirect: 'manual' });
     }
     const body = JSON.parse(init.body);
-    const inspected = body.messages.some(m => Array.isArray(m.content) && m.content.some(c => c.type === 'tool_result'));
+    const inspected = body.messages.flatMap(m => Array.isArray(m.content) ? m.content : []).findLast(c => c.type === 'tool_result');
+    const resume = inspected && pausedWorker(inspected.content);
     return Response.json({ id: crypto.randomUUID(), type: 'message', role: 'assistant', model: 'scripted-fixture',
-      content: [{ type: 'tool_use', id: crypto.randomUUID(), name: inspected ? 'request_recovery' : 'inspect_system', input: inspected ? { action: 'resume_exports' } : {} }],
-      stop_reason: 'tool_use', usage: { input_tokens: 0, output_tokens: 0 } });
+      content: inspected && !resume ? [{ type: 'text', text: 'No paused worker confirmed.' }] : [{ type: 'tool_use', id: crypto.randomUUID(), name: resume ? 'request_recovery' : 'inspect_system', input: resume ? { action: 'resume_exports' } : {} }],
+      stop_reason: inspected && !resume ? 'end_turn' : 'tool_use', usage: { input_tokens: 0, output_tokens: 0 } });
   }
   mode() { return this.ctx.storage.sql.exec("SELECT value FROM platform_settings WHERE key='provider'").toArray()[0]?.value || 'fixture'; }
   async fetch(request) {

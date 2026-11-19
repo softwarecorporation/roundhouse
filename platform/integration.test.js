@@ -44,6 +44,7 @@ test('tenant-isolated D1, MCP authority and actual alarm-based CSV recovery', { 
     assert.equal(listed.result.tools.some(t => /approve|exec|fetch/.test(t.name)), false);
     await value(await api('/api/policy', owner, { require_approval: true }));
     await value(await mcp(control.token, 'start_monitoring'));
+    await value(await api('/api/reports', owner, { period: 7 }));
     await value(await api('/api/demo/fault', owner, {}));
     const pending = await poll(owner, s => s.monitoring.incidents.some(i => i.state === 'awaiting_approval'));
     const incident = pending.monitoring.incidents[0];

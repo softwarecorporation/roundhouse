@@ -48,7 +48,6 @@ export async function createDemo(options = {}) {
       if (!state.capabilities.fault_allowed) throw new HttpError(409, "Wait for the current incident to resolve before starting another drill.");
       const result = await appMutation("/fault", {});
       await capture("worker.paused", { reason: "operator_injected_demo_fault" });
-      await capture("report.queued", { period: 7, source: "failure_drill" });
       await runtime.json("/v1/events", { monitor: "reportroom" }, { token: runtime.tokens.event, headers: { "idempotency-key": randomUUID() } });
       return result;
     }

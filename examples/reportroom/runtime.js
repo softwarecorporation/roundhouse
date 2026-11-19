@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { access } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { pausedWorker } from './fixture.js';
 
 export async function createRuntime({ provider = "fixture", persistence = false, requireApproval = false, key = process.env.ANTHROPIC_API_KEY, model = process.env.DEMO_MODEL ?? "claude-haiku-5-5" } = {}) {
   if (typeof requireApproval !== "boolean") throw new Error("requireApproval must be a boolean");
@@ -68,8 +69,9 @@ export async function createRuntime({ provider = "fixture", persistence = false,
       if (provider === "fixture" && request.url === "https://model.test/v1/chat/completions" && request.method === "POST") {
         stats.requests++;
         const body = await request.json();
-        const inspected = body.messages.some(message => message.role === "tool");
-        return Response.json({ choices: [{ message: { role: "assistant", content: "Deterministic fixture, not model reasoning: the export worker is paused; request its configured resume action after inspection.", tool_calls: [{ id: randomUUID(), type: "function", function: { name: inspected ? "request_recovery" : "inspect_system", arguments: inspected ? '{"action":"resume_exports"}' : "{}" } }] } }] });
+        const inspected = body.messages.findLast(message => message.role === "tool");
+        const resume = inspected && pausedWorker(inspected.content);
+        return Response.json({ choices: [{ message: { role: "assistant", content: "Deterministic fixture", tool_calls: inspected && !resume ? [] : [{ id: randomUUID(), type: "function", function: { name: resume ? "request_recovery" : "inspect_system", arguments: resume ? '{"action":"resume_exports"}' : "{}" } }] } }] });
       }
       if (provider === "anthropic" && request.url === "https://api.anthropic.com/v1/messages" && request.method === "POST") {
         stats.requests++;

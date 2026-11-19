@@ -377,6 +377,9 @@ export class Roundhouse extends DurableObject<Env> {
         for (const call of accepted.reply.calls) {
           const current = this.incident(i.id);
           const decision = core.decision(m, call, current.approved_action, !!current.attempted);
+          if (decision === "inspect" || decision === "execute" || decision === "approval_required") {
+            this.audit(i.id, "tool_call", { name: call.name, input: decision === "inspect" ? {} : { action: (call.arguments as {action:string}).action } });
+          }
           if (decision === "registered") {
             const tool = m.tools?.find(t => t.name === call.name);
             if (!tool) throw new Error("unavailable tool");

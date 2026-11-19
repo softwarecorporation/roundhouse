@@ -38,6 +38,7 @@ try {
   assert.equal((await value(await api('/api/policy'))).require_approval, false);
   if (manual) await value(await api('/api/policy', { require_approval: true }));
   await value(await api('/api/monitor/start', {}));
+  await value(await api('/api/reports', { period: 7, title: 'Weekly reconciliation' }));
   await value(await api('/api/demo/fault', {}));
   if (manual) {
     const pending = await until(s => s.monitoring.incidents[0]?.state === 'awaiting_approval');

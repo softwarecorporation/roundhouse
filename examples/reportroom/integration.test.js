@@ -57,6 +57,7 @@ test("real SaaS HTTP flow: export, detected failure, approval across restart, ac
     expect(normal.monitoring.incidents).toHaveLength(0);
     expect(normal.monitoring.events.some(event => event.name === "report.queued")).toBe(true);
 
+    await api("/api/reports", { period: 7, title: "Weekly reconciliation" });
     await api("/api/fault", {});
     await api("/api/fault", {}, 409);
     const pending = await eventually(state, s => s.monitoring.incidents[0]?.state === "awaiting_approval", "Rotary investigation and approval gate");
@@ -98,6 +99,9 @@ test("real SaaS HTTP flow: export, detected failure, approval across restart, ac
     const recoveredJob = resolved.app.jobs.find(j => j.id === queued.id);
     const recoveredCsv = await (await fetch(new URL(`/api/reports/${queued.id}.csv`, server.url))).text();
     expect(createHash("sha256").update(recoveredCsv).digest("hex")).toBe(recoveredJob.sha256);
+    const detail = await (await fetch(new URL(`/api/reports/${queued.id}`, server.url))).json();
+    expect(detail.recovery.incident_id).toBe(incident.id);
+    expect(detail.recovery.verified_sha256).toBe(createHash('sha256').update(recoveredCsv).digest('hex'));
 
     await api("/api/reset", {});
     const reset = await state();

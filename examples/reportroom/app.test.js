@@ -139,6 +139,7 @@ test("all non-public routes require bearer auth and explicit path/method/body al
 
 test("fault preserves reports and pauses alarms; recovery acceptance is not verification; durable claims survive reset", async () => {
   const previous = (await state()).jobs;
+  const submitted = await (await post("/reports", { period: 7, title: "Weekly reconciliation" })).json();
   const fault = await post("/fault");
   expect(fault.status).toBe(200);
   const paused = await fault.json();
@@ -147,6 +148,7 @@ test("fault preserves reports and pauses alarms; recovery acceptance is not veri
   expect(paused.jobs).toHaveLength(previous.length + 1);
   for (const job of previous) expect(paused.jobs).toContainEqual(job);
   const pending = paused.jobs.find(job => job.state === "queued");
+  expect(pending.id).toBe(submitted.id);
   expect(pending.period).toBe(7);
   expect((await post("/fault")).status).toBe(409);
   expect((await request("/health")).status).toBe(503);
@@ -199,7 +201,7 @@ test("fault preserves reports and pauses alarms; recovery acceptance is not veri
 
 test("job storage is bounded and reset frees report capacity without clearing recovery history", async () => {
   await post("/fault");
-  for (let i = 1; i < 25; i++) expect((await post("/reports", { period: i % 2 ? 7 : 30 })).status).toBe(202);
+  for (let i = 0; i < 25; i++) expect((await post("/reports", { period: i % 2 ? 7 : 30 })).status).toBe(202);
   expect((await post("/reports", { period: 7 })).status).toBe(409);
   expect((await state()).jobs).toHaveLength(25);
   const reset = await (await post("/reset")).json();

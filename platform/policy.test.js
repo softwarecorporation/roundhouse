@@ -95,6 +95,7 @@ test('automatic recovery, explicit approval, and persistent legacy policy on rea
     for (const body of [null, [], {}, { require_approval: 'false' }, { require_approval: false, extra: true }]) assert.equal((await runtime.request('/platform/policy', body)).status, 400);
     assert.equal((await runtime.mf.dispatchFetch('https://tenant.test/platform/policy', { method: 'POST', body: '{' })).status, 400);
     assert.equal((await runtime.mf.dispatchFetch('https://tenant.test/platform/policy', { method: 'PUT' })).status, 405);
+    await runtime.json('/app/reports', { period: 7 });
     await runtime.json('/app/fault', {});
     await runtime.json('/v1/start', {});
     const job = await verifyRecovery(runtime.json, '/app');
@@ -118,6 +119,7 @@ test('automatic recovery, explicit approval, and persistent legacy policy on rea
     await runtime.mf.dispose(); runtime = undefined;
 
     standalone = await createStandalone();
+    await standalone.app('/reports', { period: 7 });
     await standalone.app('/fault', {});
     const json = (path, body) => path.startsWith('/app/') ? standalone.app(path.slice(4), body) : standalone.json(path, body);
     await verifyRecovery(json, '/app');

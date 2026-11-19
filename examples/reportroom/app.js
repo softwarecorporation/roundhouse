@@ -53,6 +53,7 @@ export class ReportApplication extends DurableObject {
     ctx.storage.sql.exec(`
       CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS claims(key TEXT PRIMARY KEY, fault INTEGER NOT NULL UNIQUE);
+      CREATE TABLE IF NOT EXISTS recovered_jobs(job_id TEXT PRIMARY KEY,incident_id TEXT NOT NULL,action TEXT NOT NULL,verified_sha256 TEXT,checked_at TEXT);
       CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY,day TEXT NOT NULL,revenue_cents INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS jobs(
         id TEXT PRIMARY KEY,period INTEGER NOT NULL,state TEXT NOT NULL,created_at TEXT NOT NULL,
@@ -154,7 +155,8 @@ export class ReportApplication extends DurableObject {
           const values = line.split(",");
           return Object.fromEntries(columns.map((column, index) => [column, index === 0 ? values[index] : Number(values[index])]));
         });
-        return Response.json({ ...metadata, preview: { columns, rows, truncated: job.rows > PREVIEW_ROWS },
+        const recovery = this.ctx.storage.sql.exec('SELECT incident_id,action,verified_sha256,checked_at FROM recovered_jobs WHERE job_id=?', job.id).toArray()[0];
+        return Response.json({ ...metadata, ...(recovery ? { recovery } : {}), preview: { columns, rows, truncated: job.rows > PREVIEW_ROWS },
           download_url: job.state === "completed" ? `/reports/${job.id}.csv` : null });
       }
       const job = this.ctx.storage.sql.exec("SELECT state,csv FROM jobs WHERE id=?", download[1]).toArray()[0];
@@ -194,11 +196,9 @@ export class ReportApplication extends DurableObject {
     if (keys.length && !recoveryMetadata) return error("empty object or recovery incident metadata required", 400);
     if (url.pathname === "/fault") {
       if (this.value("running") !== "1" || this.value("recovering") === "1") return error("fault already active", 409);
-      if (this.jobs().length >= MAX_JOBS) return error("report limit reached; reset demo reports", 409);
       this.ctx.storage.transactionSync(() => {
         this.put("running", 0);
         this.put("fault", Number(this.value("fault")) + 1);
-        this.queue(7);
       });
       await this.ctx.storage.deleteAlarm();
       return Response.json(this.status());
@@ -214,6 +214,9 @@ export class ReportApplication extends DurableObject {
       }
       this.ctx.storage.transactionSync(() => {
         this.ctx.storage.sql.exec("INSERT INTO claims VALUES(?,?)", key, fault);
+        if (recoveryMetadata) {
+          this.ctx.storage.sql.exec("INSERT OR IGNORE INTO recovered_jobs(job_id,incident_id,action) SELECT id,?,'resume_exports' FROM jobs WHERE state='queued'", body.incident_id);
+        }
         this.put("recoveries", Number(this.value("recoveries")) + 1);
         this.put("running", 1);
         this.put("recovering", 1);
@@ -223,6 +226,7 @@ export class ReportApplication extends DurableObject {
     }
     this.ctx.storage.transactionSync(() => {
       this.ctx.storage.sql.exec("DELETE FROM jobs");
+      this.ctx.storage.sql.exec("DELETE FROM recovered_jobs");
       this.put("running", 1);
       this.put("recovering", 0);
     });
@@ -262,6 +266,14 @@ export class ReportApplication extends DurableObject {
     if (this.ctx.storage.sql.exec("SELECT id FROM jobs WHERE state='queued' LIMIT 1").toArray().length) {
       await this.ctx.storage.setAlarm(Date.now() + ALARM_DELAY);
     } else {
+      for (const job of this.ctx.storage.sql.exec('SELECT j.id,j.rows,j.sha256 FROM jobs j JOIN recovered_jobs r ON r.job_id=j.id WHERE r.verified_sha256 IS NULL').toArray()) {
+        const response = await this.fetch(new Request(`https://reportroom.internal/reports/${job.id}.csv`, { headers: { authorization: `Bearer ${this.env.APPLICATION_TOKEN}` } }));
+        if (!response.ok) return;
+        const csv = await response.text();
+        const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(csv))), x => x.toString(16).padStart(2,'0')).join('');
+        if (hash !== job.sha256 || csv.trimEnd().split('\n').length !== 1 + job.rows) return;
+        this.ctx.storage.sql.exec('UPDATE recovered_jobs SET verified_sha256=?,checked_at=? WHERE job_id=?', hash, new Date().toISOString(), job.id);
+      }
       this.put("recovering", 0);
     }
   }

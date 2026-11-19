@@ -25,7 +25,7 @@
     $('monitor-start').disabled = busy || !connected || state?.monitoring?.enabled;
   }
   function reportRows() {
-    const signature = JSON.stringify(workspace.reports);
+    const signature = JSON.stringify([workspace.reports,state.app.worker_running]);
     if (signature === historySignature) return;
     historySignature = signature;
     const rows = workspace.reports.map(report => {
@@ -33,7 +33,7 @@
       const title = node('td'); const link = node('a', report.title, 'report-title'); link.href = `#report-${report.id}`;
       link.addEventListener('click', event => { event.preventDefault(); void showDetail(report.id); });
       title.append(link, node('span', stamp(report.created_at), 'cell-note'));
-      const status = node('td'); status.append(node('span', report.state === 'completed' ? 'Ready' : report.state === 'queued' ? 'Generating' : 'Failed', `state ${report.state}`));
+      const status = node('td'); status.append(node('span', report.state === 'completed' ? 'Ready' : report.state === 'queued' ? (state.app.worker_running ? 'Generating' : 'Waiting for worker') : 'Failed', `state ${report.state}`));
       const output = node('td'); const links = node('div', null, 'row-links');
       const view = node('a', 'View'); view.href = link.href; view.addEventListener('click', event => { event.preventDefault(); void showDetail(report.id); }); links.append(view);
       if (report.state === 'completed') { const csv = node('a', 'CSV'); csv.href = `/api/reports/${report.id}.csv`; csv.setAttribute('download', ''); csv.setAttribute('aria-label', `Download ${report.title}`); links.append(csv); }
@@ -109,7 +109,17 @@
       if (incident.state === 'awaiting_approval') {
         const approve = node('button', 'Approve recovery'); approve.type = 'button'; approve.addEventListener('click', () => { if (confirm('Resume the synthetic report worker?')) void mutate(`/api/incidents/${incident.id}/approve`, {}); }); section.append(approve);
       }
-      const details = node('details'); details.append(node('summary', 'Evidence')); const list = node('ol');
+      const trace = node('ol', null, 'execution');
+      for (const e of incident.history || []) {
+        let d; try { d = typeof e.detail === 'string' ? JSON.parse(e.detail) : e.detail; } catch { continue; }
+        if (!d) continue;
+        const label = { provider_mode: 'Provider', inspection: 'Evidence collected', tool_call: 'Tool requested', action_outcome: 'Action result', verification: 'Independent health probe' }[e.kind];
+        if (!label) continue;
+        const value = e.kind === 'provider_mode' ? (d.mode === 'fixture' ? 'Deterministic fixture' : d.mode) : e.kind === 'inspection' ? `HTTP ${d.health?.status ?? 'unavailable'} · ${(d.diagnostics || []).map(x => x.name).join(', ')}` : e.kind === 'tool_call' ? [d.name,d.input?.action].filter(Boolean).join(' → ') : e.kind === 'verification' ? `HTTP ${d.status ?? 'unavailable'} · ${d.healthy ? 'Healthy' : 'Not healthy'}` : d.outcome;
+        const li = node('li'); li.append(node('strong',label),node('span',value)); trace.append(li);
+      }
+      section.append(trace);
+      const details = node('details'); details.append(node('summary', 'Recorded evidence')); const list = node('ol');
       for (const entry of incident.history || []) { const li = node('li'); li.append(node('time', stamp(typeof entry.at === 'number' && entry.at < 1e12 ? entry.at * 1000 : entry.at)), node('strong', entry.kind)); const raw = node('pre', typeof entry.detail === 'string' ? entry.detail : JSON.stringify(entry.detail)); li.append(raw); list.append(li); }
       details.append(list); section.append(details); return section;
     }));
@@ -152,10 +162,10 @@
     if (!background) { detailId = id; detailSignature = null; $('report-detail').hidden = false; $('detail-title').textContent = 'Loading report…'; $('detail-content').replaceChildren(); }
     try {
       const report = await api(`/api/reports/${id}`); if (detailId !== id) return;
-      const signature = JSON.stringify(report); if (signature === detailSignature) return; detailSignature = signature;
+      const signature = JSON.stringify([report,state.app.worker_running]); if (signature === detailSignature) return; detailSignature = signature;
       $('detail-title').textContent = report.title; $('detail-meta').textContent = `${report.period} days / ${report.group_by} / ${report.state === 'completed' ? 'Ready' : report.state === 'queued' ? 'Generating' : 'Failed'}`;
       const content = $('detail-content'); content.replaceChildren();
-      if (report.state !== 'completed') { content.append(node('p', report.state === 'queued' ? 'Generating. This view updates automatically.' : 'Generation failed. Check worker status in Roundhouse.')); }
+      if (report.state !== 'completed') { content.append(node('p', report.state === 'queued' ? (state.app.worker_running ? 'Generating. This view updates automatically.' : 'The export worker is paused. Your report is still in the queue; no need to submit it again.') : 'Generation failed. Check worker status in Roundhouse.')); }
       else {
         const download = node('a', 'Download CSV'); download.href = `/api/reports/${id}.csv`; download.setAttribute('download', '');
         content.append(download, node('p', `${report.order_count} orders / ${money(report.revenue_cents)} / ${report.rows} rows`, 'detail-meta'));
@@ -167,6 +177,11 @@
         table.append(head, body); region.append(table); content.append(region);
         if (report.preview.truncated) content.append(node('p', 'Preview: first 10 rows.', 'hint'));
         const digest = node('details'); digest.append(node('summary', 'SHA-256'), node('code', report.sha256)); content.append(digest);
+        if (report.recovery) {
+          const proof = node('section',null,'recovery-receipt'); proof.append(node('h3',report.recovery.verified_sha256 ? 'Recovered CSV verified' : 'Checking recovered CSV'),node('p',`Action: ${report.recovery.action} · Incident ${report.recovery.incident_id}`));
+          if (report.recovery.checked_at) proof.append(node('p',`The download matched its stored SHA-256 and row count at ${stamp(report.recovery.checked_at)}.`));
+          const link = node('a','View execution history'); link.href='#roundhouse'; proof.append(link); content.append(proof);
+        }
       }
       if (!background) $('report-detail').scrollIntoView({ block: 'nearest' });
     } catch (error) { if (!background) { $('detail-title').textContent = 'Report unavailable'; $('detail-content').replaceChildren(node('p', error.message)); } }
